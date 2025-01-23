@@ -9,8 +9,8 @@ void BalloonWnd::Setup(BalloonInfo* bi)
 		180, 
 		80, 
 		SDL_WINDOW_BORDERLESS | 
-		SDL_WINDOW_ALWAYS_ON_TOP |
-		SDL_WINDOW_HIDDEN
+		SDL_WINDOW_ALWAYS_ON_TOP /*|
+		SDL_WINDOW_HIDDEN*/
 	);
 
 	Renderer = SDL_CreateRenderer(
@@ -34,11 +34,16 @@ void BalloonWnd::Setup(BalloonInfo* bi)
 		WS_EX_NOACTIVATE |
 		WS_EX_LAYERED |
 		WS_EX_TOPMOST
-	);
-
-	SetMenu(hwnd, NULL);
+	); 
 
 	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, 1);
+
+	TTF_Init();
+
+	// https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-createfonta#parameters
+	int fontSizePt = (-BalloonStyle->FontHeight * 72) / GetDeviceCaps(GetWindowDC(hwnd), LOGPIXELSY);
+
+	Font = TTF_OpenFont("sserife.fon", fontSizePt);
 }
 
 void BalloonWnd::Move(int x, int y)
@@ -46,6 +51,11 @@ void BalloonWnd::Move(int x, int y)
 	SDL_SetWindowPosition(Window, x, y);
 
 	// TODO: ajustar posição da ponta do balão etc e tal
+}
+
+void BalloonWnd::UpdateText(string text)
+{
+	Text = text;
 }
 
 void BalloonWnd::Show()
@@ -65,6 +75,8 @@ void BalloonWnd::Update()
 
 	Render({ 0, 0, 180, 80 });
 
+	RenderText(Text, BalloonStyle->ForegroundColor);
+
 	SDL_RenderPresent(Renderer);
 }
 
@@ -72,9 +84,9 @@ void BalloonWnd::Render(Rect bounds)
 {
 	SDL_Point arcPositions[4] = {
 		{bounds.x, bounds.y},
-		{bounds.right() - CornerDiamenter, bounds.y},
-		{bounds.right() - CornerDiamenter, bounds.bottom() - CornerDiamenter},
-		{bounds.x, bounds.bottom() - CornerDiamenter}
+		{bounds.right() - CornerDiameter, bounds.y},
+		{bounds.right() - CornerDiameter, bounds.bottom() - CornerDiameter},
+		{bounds.x, bounds.bottom() - CornerDiameter}
 	};
 
 	SDL_Point tipPoints[3] = {};
@@ -90,33 +102,33 @@ void BalloonWnd::Render(Rect bounds)
 
 	switch (TipQuad) {
 	case TipQuadrant::Top:
-		tipPoints[0] = { bounds.x + TipOffsetInLine + CornerDiamenter, bounds.y + TipDepth + 1 };
-		tipPoints[1] = { bounds.x + TipOffsetInLine + CornerDiamenter + TipMiddle, bounds.y };
-		tipPoints[2] = { bounds.x + TipOffsetInLine + CornerDiamenter + TipSpacing, bounds.y + TipDepth + 1 };
+		tipPoints[0] = { bounds.x + TipOffsetInLine + CornerDiameter, bounds.y + TipDepth + 1 };
+		tipPoints[1] = { bounds.x + TipOffsetInLine + CornerDiameter + TipMiddle, bounds.y };
+		tipPoints[2] = { bounds.x + TipOffsetInLine + CornerDiameter + TipSpacing, bounds.y + TipDepth + 1 };
 
 		arcPositions[0].y += TipDepth;
 		arcPositions[1].y += TipDepth;
 		break;
 	case TipQuadrant::Right:
-		tipPoints[0] = { bounds.right() - TipDepth - 1, bounds.y + TipOffsetInLine + CornerDiamenter };
-		tipPoints[1] = { bounds.right() + TipOffsetInLine + CornerDiamenter + TipMiddle, bounds.y };
-		tipPoints[2] = { bounds.right() + TipOffsetInLine + CornerDiamenter + TipSpacing, bounds.y + TipDepth + 1 };
+		tipPoints[0] = { bounds.right() - TipDepth - 1, bounds.y + TipOffsetInLine + CornerDiameter };
+		tipPoints[1] = { bounds.right() + TipOffsetInLine + CornerDiameter + TipMiddle, bounds.y };
+		tipPoints[2] = { bounds.right() + TipOffsetInLine + CornerDiameter + TipSpacing, bounds.y + TipDepth + 1 };
 
 		arcPositions[0].y += TipDepth;
 		arcPositions[1].y += TipDepth;
 		break;
 	case TipQuadrant::Bottom:
-		tipPoints[0] = { bounds.x + TipOffsetInLine + CornerDiamenter, bounds.bottom() - TipDepth - 1 };
-		tipPoints[1] = { bounds.x + TipOffsetInLine + CornerDiamenter + TipMiddle, bounds.bottom() };
-		tipPoints[2] = { bounds.x + TipOffsetInLine + CornerDiamenter + TipSpacing, bounds.bottom() - TipDepth - 1 };
+		tipPoints[0] = { bounds.x + TipOffsetInLine + CornerDiameter, bounds.bottom() - TipDepth - 1 };
+		tipPoints[1] = { bounds.x + TipOffsetInLine + CornerDiameter + TipMiddle, bounds.bottom() };
+		tipPoints[2] = { bounds.x + TipOffsetInLine + CornerDiameter + TipSpacing, bounds.bottom() - TipDepth - 1 };
 
 		arcPositions[2].y -= TipDepth;
 		arcPositions[3].y -= TipDepth;
 		break;
 	case TipQuadrant::Left:
-		tipPoints[0] = { bounds.x + TipDepth, bounds.y + TipOffsetInLine + CornerDiamenter };
-		tipPoints[1] = { bounds.x, bounds.y + TipOffsetInLine + CornerDiamenter + TipMiddle };
-		tipPoints[2] = { bounds.x + TipDepth, bounds.y + TipOffsetInLine + CornerDiamenter + TipSpacing };
+		tipPoints[0] = { bounds.x + TipDepth, bounds.y + TipOffsetInLine + CornerDiameter };
+		tipPoints[1] = { bounds.x, bounds.y + TipOffsetInLine + CornerDiameter + TipMiddle };
+		tipPoints[2] = { bounds.x + TipDepth, bounds.y + TipOffsetInLine + CornerDiameter + TipSpacing };
 
 		arcPositions[0].x += TipDepth;
 		arcPositions[3].x += TipDepth;
@@ -171,10 +183,31 @@ void BalloonWnd::Render(Rect bounds)
 	SDL_RenderDrawLine(Renderer, tipPoints[0].x, tipPoints[0].y, tipPoints[1].x, tipPoints[1].y);
 	SDL_RenderDrawLine(Renderer, tipPoints[2].x, tipPoints[2].y, tipPoints[1].x, tipPoints[1].y);
 
-	DrawCorner(arcPositions[0], CornerDiamenter, false, false); // top left
-	DrawCorner(arcPositions[1], CornerDiamenter, true, false); // top right
-	DrawCorner(arcPositions[2], CornerDiamenter, true, true); // bottom right
-	DrawCorner(arcPositions[3], CornerDiamenter, false, true); // bottom left
+	DrawCorner(arcPositions[0], CornerDiameter, false, false); // top left
+	DrawCorner(arcPositions[1], CornerDiameter, true, false); // top right
+	DrawCorner(arcPositions[2], CornerDiameter, true, true); // bottom right
+	DrawCorner(arcPositions[3], CornerDiameter, false, true); // bottom left
+}
+
+void BalloonWnd::RenderText(string text, RGBQuad color)
+{
+	SDL_Surface* srf = TTF_RenderUNICODE_Solid(Font, (ushort*)text.c_str(), {color.Red, color.Green, color.Blue, 255});
+	SDL_Texture* tex = SDL_CreateTextureFromSurface(Renderer, srf);
+	SDL_Rect textRect = {};
+
+	TTF_SizeUNICODE(Font, (ushort*)text.c_str(), &textRect.w, &textRect.h);
+
+	SDL_Rect targetRect = {
+		CornerDiameter + (TipQuad == TipQuadrant::Left ? TipDepth : 0),
+		CornerDiameter + (TipQuad == TipQuadrant::Top ? TipDepth : 0),
+		textRect.w,
+		textRect.h
+	};
+
+	SDL_RenderCopy(Renderer, tex, &textRect, &targetRect);
+
+	SDL_FreeSurface(srf);
+	SDL_DestroyTexture(tex);
 }
 
 void BalloonWnd::FillTriangle(SDL_Point v1, SDL_Point v2, SDL_Point v3, RGBQuad color)

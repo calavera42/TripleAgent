@@ -4,6 +4,7 @@
 
 #include <SDL.h>
 #include <SDL_syswm.h>
+#include <SDL_ttf.h>
 
 enum class TipQuadrant {
 	Top,
@@ -20,7 +21,10 @@ private:
 
 	BalloonInfo* BalloonStyle = nullptr;
 
-	const int CornerDiamenter = 10;
+	TTF_Font* Font;
+	string Text;
+
+	const int CornerDiameter = 12;
 	const int TipDepth = 13;
 	const int TipSpacing = 10;
 	const int TipMiddle = TipSpacing / 2;
@@ -28,6 +32,8 @@ private:
 	int TipOffsetInLine = 0;
 
 	void Render(Rect bounds);
+
+	void RenderText(string text, RGBQuad color);
 
 	void FillTriangle(SDL_Point v1, SDL_Point v2, SDL_Point v3, RGBQuad color);
 	bool PointInTriangle(SDL_Point point, SDL_Point p1, SDL_Point p2, SDL_Point p3);
@@ -42,9 +48,13 @@ public:
 	TipQuadrant TipQuad = TipQuadrant::Left;
 
 	void Setup(BalloonInfo* bi);
+
 	void Move(int x, int y);
+	void UpdateText(string text);
+
 	void Show();
 	void Hide();
+
 	void Update();
 };
 
