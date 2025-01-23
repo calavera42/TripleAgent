@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ACSFormat/AgentFile.h"
+#include "BalloonWnd.h"
 
 #include <thread>
 #include <chrono>
@@ -24,6 +25,8 @@ private:
 
 	void ShowWindow();
 	void HideWindow();
+
+	static SDL_HitTestResult HitTestCallback(SDL_Window* win, const SDL_Point* area, void* data);
 	// ------------
 
 	// Audio
@@ -42,6 +45,10 @@ private:
 
 	void PlayAudio(uint index);
 	static void AudioFinishedCallback(int channel);
+	// ------------
+
+	// Fala 
+	BalloonWnd Balloon;
 	// ------------
 
 	// Animação

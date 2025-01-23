@@ -38,7 +38,8 @@ void Agent::SetupWindow()
 		SDL_WINDOWPOS_UNDEFINED, 
 		AgFile->CharInfo.Width, 
 		AgFile->CharInfo.Height, 
-		0
+		SDL_WINDOW_ALWAYS_ON_TOP | 
+		SDL_WINDOW_BORDERLESS
 	);
 
 	Renderer = SDL_CreateRenderer(
@@ -61,13 +62,6 @@ void Agent::SetupWindow()
 		WS_EX_TOPMOST
 	); 
 
-	// Temporário, mostra a barra de título mas oculta o menu
-	SetWindowLong(
-		hwnd, 
-		GWL_STYLE, 
-		GetWindowLong(hwnd, GWL_STYLE) &
-		~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
-	);
 	SetMenu(hwnd, NULL);
 
 	SetWindowText(hwnd, loc->CharName.c_str());
@@ -81,6 +75,10 @@ void Agent::SetupWindow()
 		Mix_ChannelFinished(AudioFinishedCallback);
 		Mix_OpenAudio(22050, AUDIO_S8, 1, 1024);
 	}
+
+	SDL_SetWindowHitTest(AgentWindow, HitTestCallback, nullptr);
+
+	Balloon.Setup(&AgFile->CharInfo.BalloonInfo);
 }
 
 void Agent::WndLoop()
@@ -104,6 +102,7 @@ void Agent::WndLoop()
 		}
 
 		Render();
+		Balloon.Update();
 	}
 }
 
@@ -246,6 +245,11 @@ void Agent::HideWindow()
 {
 	SDL_HideWindow(AgentWindow);
 	Shown = false;
+}
+
+SDL_HitTestResult Agent::HitTestCallback(SDL_Window* win, const SDL_Point* area, void* data)
+{
+	return SDL_HITTEST_DRAGGABLE;
 }
 
 std::map<uint, AudioInfo> Agent::AudioData = {};

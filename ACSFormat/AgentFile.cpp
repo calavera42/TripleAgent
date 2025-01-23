@@ -183,9 +183,20 @@ void AgentFile::ReadBalloonInfo()
 	ReadTo(CharInfo.BalloonInfo.TextLines, Stream);
 	ReadTo(CharInfo.BalloonInfo.CharsPerLine, Stream);
 
-	ReadTo(CharInfo.BalloonInfo.ForegroundColor, Stream);
-	ReadTo(CharInfo.BalloonInfo.BackgroundColor, Stream);
-	ReadTo(CharInfo.BalloonInfo.BorderColor, Stream);
+	ReadTo(CharInfo.BalloonInfo.ForegroundColor.Red, Stream);
+	ReadTo(CharInfo.BalloonInfo.ForegroundColor.Green, Stream);
+	ReadTo(CharInfo.BalloonInfo.ForegroundColor.Blue, Stream);
+	ReadTo(CharInfo.BalloonInfo.ForegroundColor.Reserved, Stream);
+
+	ReadTo(CharInfo.BalloonInfo.BackgroundColor.Red, Stream);
+	ReadTo(CharInfo.BalloonInfo.BackgroundColor.Green, Stream);
+	ReadTo(CharInfo.BalloonInfo.BackgroundColor.Blue, Stream);
+	ReadTo(CharInfo.BalloonInfo.BackgroundColor.Reserved, Stream);
+
+	ReadTo(CharInfo.BalloonInfo.BorderColor.Red, Stream);
+	ReadTo(CharInfo.BalloonInfo.BorderColor.Green, Stream);
+	ReadTo(CharInfo.BalloonInfo.BorderColor.Blue, Stream);
+	ReadTo(CharInfo.BalloonInfo.BorderColor.Reserved, Stream);
 
 	CharInfo.BalloonInfo.FontName = ReadString(Stream);
 	ReadTo(CharInfo.BalloonInfo.FontHeight, Stream);
