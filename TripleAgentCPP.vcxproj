@@ -135,11 +135,13 @@
   <ItemGroup>
     <ClCompile Include="ACSFormat\AgentFile.cpp" />
     <ClCompile Include="Agent.cpp" />
+    <ClCompile Include="BalloonWnd.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ACSFormat\Structs.h" />
     <ClInclude Include="Agent.h" />
+    <ClInclude Include="BalloonWnd.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="ACSFormat\AgentFile.h" />
     <ClInclude Include="ACSFormat\BitReader.h" />

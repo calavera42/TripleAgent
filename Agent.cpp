@@ -52,8 +52,22 @@ void Agent::SetupWindow()
 	SDL_GetWindowWMInfo(AgentWindow, &wmInfo);
 	HWND hwnd = wmInfo.info.win.window;
 
-	SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_NOACTIVATE | WS_EX_LAYERED | WS_EX_TOPMOST);
-	SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX));
+	// Janela que não rouba o foco, com suporte para transparência e não sai da tela
+	SetWindowLong(
+		hwnd, 
+		GWL_EXSTYLE, 
+		WS_EX_NOACTIVATE | 
+		WS_EX_LAYERED | 
+		WS_EX_TOPMOST
+	); 
+
+	// Temporário, mostra a barra de título mas oculta o menu
+	SetWindowLong(
+		hwnd, 
+		GWL_STYLE, 
+		GetWindowLong(hwnd, GWL_STYLE) &
+		~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
+	);
 	SetMenu(hwnd, NULL);
 
 	SetWindowText(hwnd, loc->CharName.c_str());

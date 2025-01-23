@@ -244,4 +244,16 @@ struct CharacterInfo {
 	ushort AnimationStatesCount {};
 	StateInfo* StateList {};
 };
+
+struct Rect {
+	int x, y, w, h;
+
+	const int bottom() {
+		return y + h;
+	}
+
+	const int right() {
+		return x + w;
+	}
+};
 #pragma pack(pop)

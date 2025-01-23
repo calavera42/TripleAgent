@@ -27,6 +27,9 @@
     <ClCompile Include="Agent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="BalloonWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ACSFormat\AgentFile.h">
@@ -40,6 +43,9 @@
     </ClInclude>
     <ClInclude Include="Types.h" />
     <ClInclude Include="Agent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BalloonWnd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
