@@ -6,11 +6,11 @@ void BalloonWnd::Setup(BalloonInfo* bi)
 		"bloon",
 		SDL_WINDOWPOS_UNDEFINED, 
 		SDL_WINDOWPOS_UNDEFINED, 
-		180, 
-		80, 
+		30,
+		30,
 		SDL_WINDOW_BORDERLESS | 
-		SDL_WINDOW_ALWAYS_ON_TOP /*|
-		SDL_WINDOW_HIDDEN*/
+		SDL_WINDOW_ALWAYS_ON_TOP |
+		SDL_WINDOW_HIDDEN
 	);
 
 	Renderer = SDL_CreateRenderer(
@@ -34,7 +34,7 @@ void BalloonWnd::Setup(BalloonInfo* bi)
 		WS_EX_NOACTIVATE |
 		WS_EX_LAYERED |
 		WS_EX_TOPMOST
-	); 
+	);
 
 	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, 1);
 
@@ -43,7 +43,8 @@ void BalloonWnd::Setup(BalloonInfo* bi)
 	// https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-createfonta#parameters
 	int fontSizePt = (-BalloonStyle->FontHeight * 72) / GetDeviceCaps(GetWindowDC(hwnd), LOGPIXELSY);
 
-	Font = TTF_OpenFont("sserife.fon", fontSizePt);
+	Font = TTF_OpenFont("c:/windows/fonts/arial.ttf", std::abs(BalloonStyle->FontHeight));
+	FontSizePt = fontSizePt;
 }
 
 void BalloonWnd::Move(int x, int y)
@@ -55,7 +56,15 @@ void BalloonWnd::Move(int x, int y)
 
 void BalloonWnd::UpdateText(string text)
 {
-	Text = text;
+	BalloonText = text;
+
+	int tW, tH;
+
+	TTF_SizeUNICODE(Font, (ushort*)text.c_str(), &tW, &tH);
+
+	Rect windowBounds = GetBounds();
+
+	SDL_SetWindowSize(Window, windowBounds.w + tW + CornerDiameter, windowBounds.h + tH + CornerDiameter);
 }
 
 void BalloonWnd::Show()
@@ -73,11 +82,24 @@ void BalloonWnd::Update()
 	SDL_SetRenderDrawColor(Renderer, 255, 0, 255, 255);
 	SDL_RenderClear(Renderer);
 
-	Render({ 0, 0, 180, 80 });
+	Rect bounds = GetBounds();
+	bounds.x = 0;
+	bounds.y = 0;
 
-	RenderText(Text, BalloonStyle->ForegroundColor);
+	Render(bounds);
+
+	RenderWrappedText(BalloonText, CornerDiameter + TipDepth, CornerDiameter, BalloonStyle->ForegroundColor);
 
 	SDL_RenderPresent(Renderer);
+}
+
+Rect BalloonWnd::GetBounds()
+{
+	int x, y, w, h;
+	SDL_GetWindowPosition(Window, &x, &y);
+	SDL_GetWindowSize(Window, &w, &h);
+
+	return { x, y, w, h };
 }
 
 void BalloonWnd::Render(Rect bounds)
@@ -189,25 +211,94 @@ void BalloonWnd::Render(Rect bounds)
 	DrawCorner(arcPositions[3], CornerDiameter, false, true); // bottom left
 }
 
-void BalloonWnd::RenderText(string text, RGBQuad color)
+void BalloonWnd::RenderWrappedText(string t, int posX, int posY, RGBQuad color)
 {
-	SDL_Surface* srf = TTF_RenderUNICODE_Solid(Font, (ushort*)text.c_str(), {color.Red, color.Green, color.Blue, 255});
-	SDL_Texture* tex = SDL_CreateTextureFromSurface(Renderer, srf);
-	SDL_Rect textRect = {};
+	int lastWordBoundary = 0;
+	int charsPerLine = BalloonStyle->CharsPerLine;
+	int x = 0, y = 0;
+	int width = 0, height = 0;
+	int lnBeginIndex = 0;
 
-	TTF_SizeUNICODE(Font, (ushort*)text.c_str(), &textRect.w, &textRect.h);
+	string text = t;
+
+	std::vector<string> lines = {};
+
+	for (int i = 0; i < text.length(); i++)
+	{
+		wchar_t curChar = text[i];
+		string curLine;
+
+		if (curChar == L' ' && i != 0)
+			lastWordBoundary = i;
+
+		if (curChar != L'\n' && x < 28)
+		{
+			x++;
+			continue;
+		}
+
+		int bp = curChar == '\n' ? i : lastWordBoundary;
+
+		curLine = text.substr(lnBeginIndex, bp - lnBeginIndex);
+
+		int lnW, lnH;
+		text = text.substr(bp, text.length() - bp);
+
+		TTF_SizeUNICODE(Font, (ushort*)curLine.c_str(), &lnW, &lnH);
+		width = std::max({ lnW, width });
+		height += lnH;
+
+		RenderText(curLine, posX, posY + (y * lnH), color);
+
+		x = 0;
+		i = 0;
+		y++;
+		lnBeginIndex = i + 1;
+		continue;
+	}
+
+	if (text != L"") 
+	{
+		text = text.substr(1, text.length() - 1);
+		RenderText(text, posX, posY + height, color);
+		height += height / y;
+	}
+
+	SDL_SetWindowSize(
+		Window,
+		CornerDiameter * 2 + (TipQuad == TipQuadrant::Left || TipQuad == TipQuadrant::Right ? TipDepth : 0) + width,
+		CornerDiameter * 2 + (TipQuad == TipQuadrant::Top || TipQuad == TipQuadrant::Bottom ? TipDepth : 0) + height 
+	);
+}
+
+Rect BalloonWnd::RenderText(string text, int x, int y, RGBQuad color)
+{
+	SDL_Surface* srf = TTF_RenderUNICODE_Blended(
+		Font,
+		(ushort*)text.c_str(),
+		{
+			color.Red,
+			color.Green,
+			color.Blue,
+			255
+		}
+	);
+
+	SDL_Texture* tex = SDL_CreateTextureFromSurface(Renderer, srf);
 
 	SDL_Rect targetRect = {
-		CornerDiameter + (TipQuad == TipQuadrant::Left ? TipDepth : 0),
-		CornerDiameter + (TipQuad == TipQuadrant::Top ? TipDepth : 0),
-		textRect.w,
-		textRect.h
+		x,
+		y,
+		srf->w,
+		srf->h
 	};
 
-	SDL_RenderCopy(Renderer, tex, &textRect, &targetRect);
+	SDL_RenderCopy(Renderer, tex, nullptr, &targetRect);
 
 	SDL_FreeSurface(srf);
 	SDL_DestroyTexture(tex);
+
+	return { 0, 0, srf->w, srf->h };
 }
 
 void BalloonWnd::FillTriangle(SDL_Point v1, SDL_Point v2, SDL_Point v3, RGBQuad color)

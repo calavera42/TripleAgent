@@ -21,19 +21,24 @@ private:
 
 	BalloonInfo* BalloonStyle = nullptr;
 
-	TTF_Font* Font;
-	string Text;
+	TTF_Font* Font = nullptr;
+	string BalloonText = L"";
 
 	const int CornerDiameter = 12;
-	const int TipDepth = 13;
+	const int TipDepth = 16;
 	const int TipSpacing = 10;
 	const int TipMiddle = TipSpacing / 2;
 
+	int FontSizePt;
+
 	int TipOffsetInLine = 0;
+
+	Rect GetBounds();
 
 	void Render(Rect bounds);
 
-	void RenderText(string text, RGBQuad color);
+	void RenderWrappedText(string text, int posX, int posY, RGBQuad color);
+	Rect RenderText(string text, int x, int y, RGBQuad color);
 
 	void FillTriangle(SDL_Point v1, SDL_Point v2, SDL_Point v3, RGBQuad color);
 	bool PointInTriangle(SDL_Point point, SDL_Point p1, SDL_Point p2, SDL_Point p3);

@@ -85,6 +85,9 @@ void Agent::WndLoop()
 {
 	auto p1 = std::chrono::system_clock::now();
 
+	Balloon.Show();
+	Balloon.UpdateText(L"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla leo ante, auctor et sodales non, placerat non ipsum. Maecenas ullamcorper lorem sed magna volutpat aliquam. Donec posuere ipsum et ex facilisis, pulvinar porttitor enim placerat. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Vivamus sagittis suscipit nisl vel sollicitudin. Nam tempus, orci non sagittis interdum, ligula lectus vehicula dui, sit amet aliquam justo lorem ac felis. Nunc sed pharetra odio. Morbi semper id purus id porta. Cras sit amet semper mauris. Aliquam fringilla bibendum felis non convallis.");
+
 	while (true) 
 	{
 		SDL_PumpEvents();
@@ -272,8 +275,6 @@ void Agent::PlayAudio(uint index)
 
 	int channel = Mix_PlayChannel(-1, Song, 0);
 	AudioData.insert({ channel, ai });
-
-	printf("AC: %d; UC: %d\n", availableChannels, UsedChannels);
 }
 
 void Agent::AudioFinishedCallback(int channel)
@@ -282,6 +283,4 @@ void Agent::AudioFinishedCallback(int channel)
 
 	AudioData.erase(channel);
 	UsedChannels--;
-
-	printf("UC: %d\n", UsedChannels);
 }

@@ -322,18 +322,15 @@ SDL_Surface* AgentFile::ReadImage(uint index)
 	free(imgInfo.ImageData.Data);
 
 	SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(SDL_SWSURFACE, imgInfo.Width, imgInfo.Height, 8, SDL_PIXELFORMAT_INDEX8);
-	SDL_LockSurface(surface);
 
 	std::memcpy(surface->pixels, uncompressedImage, uncompressedImageSize);
 
 	free(uncompressedImage);
 
 	SDL_SetSurfacePalette(surface, &CharacterPalette);
-	SDL_SetSurfaceRLE(surface, 1);
 
 	RGBQuad colorKey = CharInfo.Palette[CharInfo.TransparentColorIndex];
 	SDL_SetColorKey(surface, SDL_TRUE, SDL_MapRGB(surface->format, colorKey.Red, colorKey.Green, colorKey.Blue));
-	SDL_UnlockSurface(surface);
 
 	CachedSurfaces.insert({ index, surface });
 

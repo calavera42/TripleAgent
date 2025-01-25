@@ -5,6 +5,21 @@
 
 #include <thread>
 #include <chrono>
+#include <queue>
+
+enum class RequestType {
+	Speak,
+	Animate,
+	Think,
+	Hide,
+	Move,
+	Point
+};
+
+struct Request {
+	RequestType Type;
+	void* Data;
+};
 
 class Agent
 {
@@ -31,12 +46,8 @@ private:
 
 	// Audio
 	/*
-	 * A implementação do sistema de áudio pode parecer
-	 * desnecessáriamente complicada à primeira vista, porém,
-	 * o callback do SDL_Mixer (Mixer_ChannelFinished) é estático.
-	 * 
-	 * Logo, essa implementação permite que mais de uma instância
-	 * da classe Agent possa ser feita sem eventuais problemas.
+	 * Essa implementação do sistema de audio permite que mais de uma
+	 * instância da classe Agent possa ser feita sem eventuais problemas.
 	 */
 	static bool AudioInitialized;
 
@@ -73,7 +84,9 @@ private:
 	// ------------
 
 	// Fila
+	std::queue<Request> RequestQueue;
 
+	void QueueLogic();
 	// ------------
 public:
 	Agent(AgentFile* agf);
