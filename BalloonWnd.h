@@ -10,7 +10,14 @@ enum class TipQuadrant {
 	Top,
 	Right,
 	Bottom,
-	Left
+	Left,
+};
+
+enum class WindowQuadrant {
+	TopLeft,
+	TopRight,
+	BottomLeft,
+	BottomRight
 };
 
 class BalloonWnd
@@ -29,7 +36,7 @@ private:
 	const int TipSpacing = 10;
 	const int TipMiddle = TipSpacing / 2;
 
-	int FontSizePt;
+	int FontSizePt = 0;
 
 	int TipOffsetInLine = 0;
 
@@ -54,7 +61,7 @@ public:
 
 	void Setup(BalloonInfo* bi);
 
-	void Move(int x, int y);
+	void AttachToWindow(SDL_Window* agentWindow);
 	void UpdateText(string text);
 
 	void Show();

@@ -86,7 +86,7 @@ void Agent::WndLoop()
 	auto p1 = std::chrono::system_clock::now();
 
 	Balloon.Show();
-	Balloon.UpdateText(L"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla leo ante, auctor et sodales non, placerat non ipsum. Maecenas ullamcorper lorem sed magna volutpat aliquam. Donec posuere ipsum et ex facilisis, pulvinar porttitor enim placerat. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Vivamus sagittis suscipit nisl vel sollicitudin. Nam tempus, orci non sagittis interdum, ligula lectus vehicula dui, sit amet aliquam justo lorem ac felis. Nunc sed pharetra odio. Morbi semper id purus id porta. Cras sit amet semper mauris. Aliquam fringilla bibendum felis non convallis.");
+	Balloon.UpdateText(L"Teste balão 123");
 
 	while (true) 
 	{
@@ -102,7 +102,10 @@ void Agent::WndLoop()
 			p1 = std::chrono::system_clock::now();
 
 			UpdateAnim();
+
 		}
+
+		Balloon.AttachToWindow(AgentWindow);
 
 		Render();
 		Balloon.Update();

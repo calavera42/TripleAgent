@@ -27,6 +27,7 @@ void BalloonWnd::Setup(BalloonInfo* bi)
 	SDL_GetWindowWMInfo(Window, &wmInfo);
 	HWND hwnd = wmInfo.info.win.window;
 
+	// FIXME: tornar multiplataforma
 	// Janela que não rouba o foco, com suporte para transparência e não sai da tela
 	SetWindowLong(
 		hwnd,
@@ -47,12 +48,26 @@ void BalloonWnd::Setup(BalloonInfo* bi)
 	FontSizePt = fontSizePt;
 }
 
-void BalloonWnd::Move(int x, int y)
+void BalloonWnd::AttachToWindow(SDL_Window* agentWindow)
 {
-	SDL_SetWindowPosition(Window, x, y);
+	Rect agRect;
+	Rect dsRect;
 
-	// TODO: ajustar posição da ponta do balão etc e tal
-}
+	SDL_GetWindowPosition(agentWindow, &agRect.x, &agRect.y);
+	SDL_GetWindowSizeInPixels(agentWindow, &agRect.w, &agRect.h);
+
+	int agDisplay = SDL_GetWindowDisplayIndex(agentWindow);
+
+	SDL_GetDisplayBounds(agDisplay, (SDL_Rect*)&dsRect);
+
+	agRect.x -= dsRect.x;
+	agRect.y -= dsRect.y;
+
+	int halfH = agRect.x / (dsRect.w / 2);
+	int halfV = agRect.y / (dsRect.h / 2);
+
+	TipQuad = (TipQuadrant)((halfV << 1) | halfH);
+ }
 
 void BalloonWnd::UpdateText(string text)
 {
@@ -88,7 +103,7 @@ void BalloonWnd::Update()
 
 	Render(bounds);
 
-	RenderWrappedText(BalloonText, CornerDiameter + TipDepth, CornerDiameter, BalloonStyle->ForegroundColor);
+	RenderWrappedText(BalloonText, CornerDiameter, CornerDiameter, BalloonStyle->ForegroundColor);
 
 	SDL_RenderPresent(Renderer);
 }
@@ -114,30 +129,30 @@ void BalloonWnd::Render(Rect bounds)
 	SDL_Point tipPoints[3] = {};
 
 	const static SDL_Point offsetsLookup[8] = {
-		{ 0, TipDepth}, { 0, -TipDepth },
-		{ TipDepth, 0}, { -TipDepth, 0 },
 		{ 0, TipDepth }, { 0, -TipDepth },
-		{ TipDepth, 0}, { -TipDepth, 0 },
+		{ 0, 0 }, { -TipDepth, 0 },
+		{ 0, 0 }, { 0, -TipDepth },
+		{ TipDepth, 0 }, { -TipDepth, 0 }
 	};
 
 	SDL_Rect balloonRect = { bounds.x, bounds.y, bounds.w, bounds.h };
 
 	switch (TipQuad) {
 	case TipQuadrant::Top:
-		tipPoints[0] = { bounds.x + TipOffsetInLine + CornerDiameter, bounds.y + TipDepth + 1 };
+		tipPoints[0] = { bounds.x + TipOffsetInLine + CornerDiameter, bounds.y + TipDepth };
 		tipPoints[1] = { bounds.x + TipOffsetInLine + CornerDiameter + TipMiddle, bounds.y };
-		tipPoints[2] = { bounds.x + TipOffsetInLine + CornerDiameter + TipSpacing, bounds.y + TipDepth + 1 };
+		tipPoints[2] = { bounds.x + TipOffsetInLine + CornerDiameter + TipSpacing, bounds.y + TipDepth };
 
 		arcPositions[0].y += TipDepth;
 		arcPositions[1].y += TipDepth;
 		break;
 	case TipQuadrant::Right:
 		tipPoints[0] = { bounds.right() - TipDepth - 1, bounds.y + TipOffsetInLine + CornerDiameter };
-		tipPoints[1] = { bounds.right() + TipOffsetInLine + CornerDiameter + TipMiddle, bounds.y };
-		tipPoints[2] = { bounds.right() + TipOffsetInLine + CornerDiameter + TipSpacing, bounds.y + TipDepth + 1 };
+		tipPoints[1] = { bounds.right(), bounds.y + TipOffsetInLine + CornerDiameter + TipMiddle };
+		tipPoints[2] = { bounds.right() - TipDepth - 1, bounds.y + TipOffsetInLine + CornerDiameter + TipSpacing };
 
-		arcPositions[0].y += TipDepth;
-		arcPositions[1].y += TipDepth;
+		arcPositions[1].x -= TipDepth;
+		arcPositions[2].x -= TipDepth;
 		break;
 	case TipQuadrant::Bottom:
 		tipPoints[0] = { bounds.x + TipOffsetInLine + CornerDiameter, bounds.bottom() - TipDepth - 1 };
@@ -211,63 +226,66 @@ void BalloonWnd::Render(Rect bounds)
 	DrawCorner(arcPositions[3], CornerDiameter, false, true); // bottom left
 }
 
+
+/*
+* TODO: melhorar esse algoritmo.
+*
+* - dar suporte a outros estilos de texto (negrito, itálico etc);
+* - consertar algumas coisas da renderização de texto, ex: se for um bloco
+* de texto sem espaços o balão não mostra nada.
+*/
 void BalloonWnd::RenderWrappedText(string t, int posX, int posY, RGBQuad color)
 {
-	int lastWordBoundary = 0;
-	int charsPerLine = BalloonStyle->CharsPerLine;
-	int x = 0, y = 0;
-	int width = 0, height = 0;
-	int lnBeginIndex = 0;
+	int lastSpace = 0;
 
-	string text = t;
+	int y = 0;
 
-	std::vector<string> lines = {};
+	int width = 0;
+	int height = 0;
 
-	for (int i = 0; i < text.length(); i++)
+	string rawText = t;
+
+	bool vertical = (int)TipQuad % 2 == 0;
+
+	for (int i = 0; i < rawText.length(); i++) 
 	{
-		wchar_t curChar = text[i];
-		string curLine;
+		wchar_t curChar = rawText[i];
+		bool lineBreak = curChar == L'\n';
+		string ln = L"";
 
 		if (curChar == L' ' && i != 0)
-			lastWordBoundary = i;
+			lastSpace = i;
 
-		if (curChar != L'\n' && x < 28)
-		{
-			x++;
+		if (i <= BalloonStyle->CharsPerLine && !lineBreak)
 			continue;
-		}
 
-		int bp = curChar == '\n' ? i : lastWordBoundary;
+		int breakPoint = (lineBreak) ? i : lastSpace;
 
-		curLine = text.substr(lnBeginIndex, bp - lnBeginIndex);
+		ln = rawText.substr(0, breakPoint);
+		rawText = rawText.substr(breakPoint + 1, rawText.length() - breakPoint + 1);
 
-		int lnW, lnH;
-		text = text.substr(bp, text.length() - bp);
+		int texWidth, texHeight;
 
-		TTF_SizeUNICODE(Font, (ushort*)curLine.c_str(), &lnW, &lnH);
-		width = std::max({ lnW, width });
-		height += lnH;
+		TTF_SizeUNICODE(Font, (ushort*)ln.c_str(), &texWidth, &texHeight);
 
-		RenderText(curLine, posX, posY + (y * lnH), color);
+		width = std::max({ texWidth, width });
+		height += texHeight;
 
-		x = 0;
+		RenderText(
+			ln,
+			(TipQuad == TipQuadrant::Left ? TipDepth : 0) + posX,
+			(TipQuad == TipQuadrant::Top ? TipDepth : 0) + posY + y * (texHeight),
+			color
+		);
+
 		i = 0;
 		y++;
-		lnBeginIndex = i + 1;
-		continue;
-	}
-
-	if (text != L"") 
-	{
-		text = text.substr(1, text.length() - 1);
-		RenderText(text, posX, posY + height, color);
-		height += height / y;
 	}
 
 	SDL_SetWindowSize(
 		Window,
-		CornerDiameter * 2 + (TipQuad == TipQuadrant::Left || TipQuad == TipQuadrant::Right ? TipDepth : 0) + width,
-		CornerDiameter * 2 + (TipQuad == TipQuadrant::Top || TipQuad == TipQuadrant::Bottom ? TipDepth : 0) + height 
+		CornerDiameter * 2 + (vertical ? 0 : TipDepth) + width,
+		CornerDiameter * 2 + (vertical ? TipDepth : 0) + height
 	);
 }
 
