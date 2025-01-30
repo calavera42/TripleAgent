@@ -29,7 +29,7 @@ private:
 	std::thread AgentThread;
 
 	// AgentWindow
-	SDL_Window* AgentWindow;
+	SDL_Window* Window;
 	SDL_Renderer* Renderer;
 
 	void SetupWindow();

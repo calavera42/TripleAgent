@@ -4,7 +4,7 @@ Agent::Agent(AgentFile* agf)
 {
 	AgFile = agf;
 
-	AgentWindow = nullptr;
+	Window = nullptr;
 	Renderer = nullptr;
 
 	Frame = 0;
@@ -32,18 +32,18 @@ void Agent::SetupWindow()
 		IMG_Init(SDL_INIT_EVERYTHING);
 	}
 	
-	AgentWindow = SDL_CreateWindow(
+	Window = SDL_CreateWindow(
 		"Agent",
 		SDL_WINDOWPOS_UNDEFINED, 
 		SDL_WINDOWPOS_UNDEFINED, 
 		AgFile->CharInfo.Width, 
 		AgFile->CharInfo.Height, 
-		SDL_WINDOW_ALWAYS_ON_TOP | 
-		SDL_WINDOW_BORDERLESS
+		SDL_WINDOW_ALWAYS_ON_TOP /*|
+		SDL_WINDOW_BORDERLESS*/
 	);
 
 	Renderer = SDL_CreateRenderer(
-		AgentWindow,
+		Window,
 		-1,
 		SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED
 	);
@@ -51,28 +51,30 @@ void Agent::SetupWindow()
 	// TODO: tonar isso multi plataforma
 	SDL_SysWMinfo wmInfo;
 	SDL_VERSION(&wmInfo.version);
-	SDL_GetWindowWMInfo(AgentWindow, &wmInfo);
+	SDL_GetWindowWMInfo(Window, &wmInfo);
 	HWND hwnd = wmInfo.info.win.window;
 
-	/*SetWindowLong(
+	SetWindowLong(
 		hwnd,
 		GWL_STYLE,
 		GetWindowLong(hwnd, GWL_STYLE) & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
-		);*/
+		);
 
 	// Janela que não rouba o foco, com suporte para transparência e não sai da tela
 	SetWindowLong(
 		hwnd,
 		GWL_EXSTYLE,
+		GetWindowLong(hwnd, GWL_EXSTYLE) | 
 		WS_EX_NOACTIVATE |
-		WS_EX_LAYERED |
-		WS_EX_TOPMOST
+		WS_EX_LAYERED
 	);
 
 	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, 1);
+
+	SetWindowText(hwnd, loc->CharName.c_str());
 	// ------------------------------
 
-	SDL_SetWindowIcon(AgentWindow, AgFile->AgentTrayIcon);
+	SDL_SetWindowIcon(Window, AgFile->AgentTrayIcon);
 
 	if (!AudioInitialized) 
 	{
@@ -82,15 +84,16 @@ void Agent::SetupWindow()
 		Mix_OpenAudio(22050, AUDIO_S8, 1, 1024);
 	}
 
-	SDL_SetWindowHitTest(AgentWindow, HitTestCallback, nullptr);
-
 	Balloon.Setup(&AgFile->CharInfo.BalloonInfo);
+
+	SDL_SetWindowHitTest(Window, HitTestCallback, nullptr);
 }
 
 void Agent::WndLoop()
 {
 	auto p1 = std::chrono::system_clock::now();
 
+	//TODO: remover isso
 	Balloon.Show();
 	Balloon.UpdateText(L"Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 ");
 
@@ -111,7 +114,7 @@ void Agent::WndLoop()
 
 		}
 
-		Balloon.AttachToWindow(AgentWindow);
+		Balloon.AttachToWindow(Window);
 
 		Render();
 		Balloon.Update();
@@ -249,13 +252,13 @@ void Agent::Render()
 
 void Agent::ShowWindow()
 {
-	SDL_ShowWindow(AgentWindow);
+	SDL_ShowWindow(Window);
 	Shown = true;
 }
 
 void Agent::HideWindow()
 {
-	SDL_HideWindow(AgentWindow);
+	SDL_HideWindow(Window);
 	Shown = false;
 }
 
