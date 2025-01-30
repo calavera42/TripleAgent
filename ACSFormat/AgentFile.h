@@ -25,7 +25,6 @@ class AgentFile
 {
 private:
 	ACSHeader FileHeader = {};
-	TrayIcon AgentTrayIcon = {};
 
 	std::map<string, StateInfo> AnimationStates = {};
 	std::map<string, AnimationPointer> Animations = {};
@@ -56,18 +55,20 @@ private:
 	void ReadVoiceInfo();
 	void ReadBalloonInfo();
 	IconImage ReadIconImage();
+	SDL_Surface* ReadTrayIcon();
+	SDL_Surface* RasterizeIconImage(IconImage& im);
 	void ReadAnimationInfo(ACSLocator* pos);
 	void ReadImageInfo(ACSLocator* pos);
 	void ReadAudioInfo(ACSLocator* pos);
 	void DecompressData(void* inputBuffer, size_t inputSize, byte* outputBuffer);
 public:
+	SDL_Surface* AgentTrayIcon = {};
 	void Load(std::string path);
 
 	CharacterInfo CharInfo = {};
 
 	LocalizedInfo* GetLocalizedInfo(ushort langId);
 
-	TrayIcon ReadTrayIcon();
 	AnimationInfo ReadAnimation(string name);
 	SDL_Surface* ReadImage(uint index);
 	AudioInfo ReadAudio(uint index);

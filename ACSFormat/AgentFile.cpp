@@ -210,7 +210,7 @@ LocalizedInfo* AgentFile::GetLocalizedInfo(ushort langId)
 	return &LocalizationInfo[langId];
 }
 
-TrayIcon AgentFile::ReadTrayIcon()
+SDL_Surface* AgentFile::ReadTrayIcon()
 {
 	TrayIcon output = {};
 
@@ -219,7 +219,40 @@ TrayIcon AgentFile::ReadTrayIcon()
 	ReadTo(output.SizeOfColorData, Stream);
 	output.ColorBitmapData = ReadIconImage();
 
-	return output;
+	SDL_Surface* image = RasterizeIconImage(output.ColorBitmapData);
+	SDL_Surface* mask = RasterizeIconImage(output.MonochromeBitmapData);
+
+	int width = output.ColorBitmapData.IconHeader.Width;
+	int height = output.ColorBitmapData.IconHeader.Height;
+
+	SDL_Surface* icon = SDL_CreateRGBSurfaceWithFormat(
+		0, 
+		width, 
+		height, 
+		32, 
+		SDL_PIXELFORMAT_RGBA32
+	);
+	SDL_Renderer* rend = SDL_CreateSoftwareRenderer(icon);
+
+	SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
+	SDL_RenderClear(rend);
+
+	for(int y = 0; y < height; y++)
+		for (int x = 0; x < width; x++) 
+		{
+			SDL_Color* iconPixel = (SDL_Color*)image->pixels + ((width * y) + x);
+			SDL_Color* maskPixel = (SDL_Color*)mask->pixels + ((width * y) + x);
+
+			if (maskPixel->r == 255)
+				continue;
+
+			SDL_SetRenderDrawColor(rend, iconPixel->r, iconPixel->g, iconPixel->b, 255);
+			SDL_RenderDrawPoint(rend, x, width - y);
+		}
+
+	SDL_DestroyRenderer(rend);
+
+	return icon;
 }
 
 IconImage AgentFile::ReadIconImage() // leitura obrigatória: https://devblogs.microsoft.com/oldnewthing/20101018-00/?p=12513
@@ -233,6 +266,58 @@ IconImage AgentFile::ReadIconImage() // leitura obrigatória: https://devblogs.mi
 	iconImage.Data = ReadElements<byte>(Stream, iconImage.IconHeader.SizeOfImageData);
 
 	return iconImage;
+}
+
+SDL_Surface* AgentFile::RasterizeIconImage(IconImage& im)
+{
+	SDL_PixelType lookup[9] = {
+		SDL_PIXELTYPE_UNKNOWN,
+		SDL_PIXELTYPE_INDEX1,
+		SDL_PIXELTYPE_INDEX2,
+		SDL_PIXELTYPE_UNKNOWN,
+		SDL_PIXELTYPE_INDEX4,
+		SDL_PIXELTYPE_UNKNOWN,
+		SDL_PIXELTYPE_UNKNOWN,
+		SDL_PIXELTYPE_UNKNOWN,
+		SDL_PIXELTYPE_INDEX8
+	};
+
+	SDL_Surface* icon = SDL_CreateRGBSurfaceWithFormat(
+		0,
+		im.IconHeader.Width,
+		im.IconHeader.Height,
+		32,
+		SDL_DEFINE_PIXELFORMAT(
+			lookup[im.IconHeader.BitsPerPixel],
+			SDL_BITMAPORDER_4321,
+			0,
+			im.IconHeader.BitsPerPixel,
+			0
+		)
+	);
+
+	SDL_Palette* palette = SDL_AllocPalette(im.IconHeader.ColorUsed);
+
+	for (int i = 0; i < palette->ncolors; i++) {
+		RGBQuad col = im.ColorTable[i];
+		SDL_Color sCol = { col.Red, col.Green, col.Blue, 255 };
+
+		SDL_SetPaletteColors(palette, &sCol, i, 1);
+	}
+
+	memcpy(icon->pixels, im.Data, im.IconHeader.SizeOfImageData);
+
+	SDL_SetSurfacePalette(icon, palette);
+
+	free(im.Data);
+	free(im.ColorTable);
+	SDL_FreePalette(palette);
+
+	SDL_Surface* tempS = SDL_ConvertSurfaceFormat(icon, SDL_PIXELFORMAT_RGBA32, 0);
+
+	IMG_SavePNG(tempS, "d:/img.png");
+
+	return tempS;
 }
 
 void AgentFile::ReadAnimationInfo(ACSLocator* pos)

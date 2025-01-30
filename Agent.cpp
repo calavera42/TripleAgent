@@ -48,25 +48,31 @@ void Agent::SetupWindow()
 		SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED
 	);
 
+	// TODO: tonar isso multi plataforma
 	SDL_SysWMinfo wmInfo;
 	SDL_VERSION(&wmInfo.version);
 	SDL_GetWindowWMInfo(AgentWindow, &wmInfo);
 	HWND hwnd = wmInfo.info.win.window;
 
+	/*SetWindowLong(
+		hwnd,
+		GWL_STYLE,
+		GetWindowLong(hwnd, GWL_STYLE) & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
+		);*/
+
 	// Janela que não rouba o foco, com suporte para transparência e não sai da tela
 	SetWindowLong(
-		hwnd, 
-		GWL_EXSTYLE, 
-		WS_EX_NOACTIVATE | 
-		WS_EX_LAYERED | 
+		hwnd,
+		GWL_EXSTYLE,
+		WS_EX_NOACTIVATE |
+		WS_EX_LAYERED |
 		WS_EX_TOPMOST
-	); 
-
-	SetMenu(hwnd, NULL);
-
-	SetWindowText(hwnd, loc->CharName.c_str());
+	);
 
 	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, 1);
+	// ------------------------------
+
+	SDL_SetWindowIcon(AgentWindow, AgFile->AgentTrayIcon);
 
 	if (!AudioInitialized) 
 	{
@@ -86,7 +92,7 @@ void Agent::WndLoop()
 	auto p1 = std::chrono::system_clock::now();
 
 	Balloon.Show();
-	Balloon.UpdateText(L"Teste balão 123");
+	Balloon.UpdateText(L"Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 ");
 
 	while (true) 
 	{

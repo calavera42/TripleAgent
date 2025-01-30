@@ -22,12 +22,12 @@ void BalloonWnd::Setup(BalloonInfo* bi)
 
 	BalloonStyle = bi;
 
+	// TODO: tornar multiplataforma
 	SDL_SysWMinfo wmInfo;
 	SDL_VERSION(&wmInfo.version);
 	SDL_GetWindowWMInfo(Window, &wmInfo);
 	HWND hwnd = wmInfo.info.win.window;
 
-	// FIXME: tornar multiplataforma
 	// Janela que não rouba o foco, com suporte para transparência e não sai da tela
 	SetWindowLong(
 		hwnd,
@@ -38,6 +38,7 @@ void BalloonWnd::Setup(BalloonInfo* bi)
 	);
 
 	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, 1);
+	// ------------------------------------
 
 	TTF_Init();
 
@@ -52,6 +53,7 @@ void BalloonWnd::AttachToWindow(SDL_Window* agentWindow)
 {
 	Rect agRect;
 	Rect dsRect;
+	Rect baRect;
 
 	SDL_GetWindowPosition(agentWindow, &agRect.x, &agRect.y);
 	SDL_GetWindowSizeInPixels(agentWindow, &agRect.w, &agRect.h);
@@ -60,13 +62,46 @@ void BalloonWnd::AttachToWindow(SDL_Window* agentWindow)
 
 	SDL_GetDisplayBounds(agDisplay, (SDL_Rect*)&dsRect);
 
+	baRect = GetBounds();
+
 	agRect.x -= dsRect.x;
 	agRect.y -= dsRect.y;
 
 	int halfH = agRect.x / (dsRect.w / 2);
 	int halfV = agRect.y / (dsRect.h / 2);
 
-	TipQuad = (TipQuadrant)((halfV << 1) | halfH);
+	agRect.x += dsRect.x;
+	agRect.y += dsRect.y;
+
+	WindowQuadrant wq = (WindowQuadrant)((halfV << 1) | halfH);
+
+	switch (wq)
+	{
+	case WindowQuadrant::TopLeft:
+		TipQuad = TipQuadrant::Left;
+		TipOffsetInLine = 0;
+
+		SDL_SetWindowPosition(Window, agRect.x + agRect.w, agRect.y);
+		break;
+	case WindowQuadrant::TopRight:
+		TipQuad = TipQuadrant::Right;
+		TipOffsetInLine = 0;
+
+		SDL_SetWindowPosition(Window, agRect.x - baRect.w, agRect.y);
+		break;
+	case WindowQuadrant::BottomLeft:
+		TipQuad = TipQuadrant::Bottom;
+		TipOffsetInLine = agRect.w / 2 - CornerDiameter;
+
+		SDL_SetWindowPosition(Window, agRect.x, agRect.y - agRect.h);
+		break;
+	case WindowQuadrant::BottomRight:
+		TipQuad = TipQuadrant::Bottom;
+		TipOffsetInLine = baRect.w - CornerDiameter - TipSpacing - agRect.w / 2;
+
+		SDL_SetWindowPosition(Window, agRect.x - baRect.w + agRect.w, agRect.y - agRect.h);
+		break;
+	}
  }
 
 void BalloonWnd::UpdateText(string text)
@@ -226,7 +261,6 @@ void BalloonWnd::Render(Rect bounds)
 	DrawCorner(arcPositions[3], CornerDiameter, false, true); // bottom left
 }
 
-
 /*
 * TODO: melhorar esse algoritmo.
 *
@@ -236,7 +270,7 @@ void BalloonWnd::Render(Rect bounds)
 */
 void BalloonWnd::RenderWrappedText(string t, int posX, int posY, RGBQuad color)
 {
-	int lastSpace = 0;
+	/*int lastSpace = 0;
 
 	int y = 0;
 
@@ -286,20 +320,36 @@ void BalloonWnd::RenderWrappedText(string t, int posX, int posY, RGBQuad color)
 		Window,
 		CornerDiameter * 2 + (vertical ? 0 : TipDepth) + width,
 		CornerDiameter * 2 + (vertical ? TipDepth : 0) + height
+	);*/
+
+	bool vertical = (int)TipQuad % 2 == 0;
+
+	Rect r = RenderText(
+		t,
+		(TipQuad == TipQuadrant::Left ? TipDepth : 0) + posX,
+		(TipQuad == TipQuadrant::Top ? TipDepth : 0) + posY,
+		color
+	);
+
+	SDL_SetWindowSize(
+		Window,
+		CornerDiameter * 2 + (vertical ? 0 : TipDepth) + r.w,
+		CornerDiameter * 2 + (vertical ? TipDepth : 0) + r.h
 	);
 }
 
 Rect BalloonWnd::RenderText(string text, int x, int y, RGBQuad color)
 {
-	SDL_Surface* srf = TTF_RenderUNICODE_Blended(
-		Font,
-		(ushort*)text.c_str(),
-		{
-			color.Red,
-			color.Green,
-			color.Blue,
-			255
-		}
+	SDL_Surface* srf = TTF_RenderUNICODE_Blended_Wrapped(
+		Font, 
+		(ushort*)text.c_str(), 
+		{ 
+			color.Red, 
+			color.Green, 
+			color.Blue, 
+			255 
+		}, 
+		BalloonStyle->CharsPerLine * 10
 	);
 
 	SDL_Texture* tex = SDL_CreateTextureFromSurface(Renderer, srf);
@@ -316,7 +366,7 @@ Rect BalloonWnd::RenderText(string text, int x, int y, RGBQuad color)
 	SDL_FreeSurface(srf);
 	SDL_DestroyTexture(tex);
 
-	return { 0, 0, srf->w, srf->h };
+	return { 0, 0, targetRect.w, targetRect.h };
 }
 
 void BalloonWnd::FillTriangle(SDL_Point v1, SDL_Point v2, SDL_Point v3, RGBQuad color)

@@ -16,28 +16,11 @@ public:
 		Length = inputSize;
 	}
 
-	byte PeekBit() 
-	{
-		int tempBit = CurBit;
-		int tempByte = CurByte;
-		size_t bytesRead = BytesRead;
-		byte* pos = Position;
-
-		byte bit = ReadBit();
-
-		CurBit = tempBit;
-		CurByte = tempByte;
-		Position = pos;
-		BytesRead = bytesRead;
-
-		return bit;
-	}
-
 	byte ReadBit() {
 		if (CurBit == 8) 
 		{
-			if (BytesRead == Length)
-				throw ("Tentativa de ler fora da do buffer.");
+			/*if (BytesRead == Length)
+				throw ("Tentativa de ler fora da do buffer.");*/
 
 			CurByte = *Position;
 			CurBit = 0;
