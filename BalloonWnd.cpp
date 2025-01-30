@@ -34,10 +34,11 @@ void BalloonWnd::Setup(BalloonInfo* bi)
 		GWL_EXSTYLE,
 		WS_EX_NOACTIVATE |
 		WS_EX_TRANSPARENT |
-		WS_EX_TOPMOST
+		WS_EX_TOPMOST |
+		WS_EX_LAYERED
 	);
 
-	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, 1);
+	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, LWA_COLORKEY);
 	// ------------------------------------
 
 	TTF_Init();

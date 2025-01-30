@@ -57,7 +57,7 @@ void Agent::SetupWindow()
 	SetWindowLong(
 		hwnd,
 		GWL_STYLE,
-		GetWindowLong(hwnd, GWL_STYLE) & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
+		(GetWindowLong(hwnd, GWL_STYLE) | WS_POPUP) & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
 		);
 
 	// Janela que não rouba o foco, com suporte para transparência e não sai da tela
@@ -67,10 +67,10 @@ void Agent::SetupWindow()
 		GetWindowLong(hwnd, GWL_EXSTYLE) |
 		WS_EX_TOPMOST |
 		WS_EX_NOACTIVATE |
-		WS_EX_TRANSPARENT
+		WS_EX_LAYERED
 	);
 
-	//SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, 1);
+	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, LWA_COLORKEY);
 
 	SetWindowText(hwnd, loc->CharName.c_str());
 	// ------------------------------
@@ -98,9 +98,11 @@ void Agent::WndLoop()
 	Balloon.Show();
 	Balloon.UpdateText(L"Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 ");
 
+	SDL_Event e;
 	while (true) 
 	{
-		SDL_PumpEvents();
+		while ((SDL_PollEvent(&e)))
+				printf("%d\n", e.type);
 
 		std::chrono::milliseconds dt = std::chrono::duration_cast<std::chrono::milliseconds>
 			(
