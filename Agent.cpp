@@ -64,12 +64,13 @@ void Agent::SetupWindow()
 	SetWindowLong(
 		hwnd,
 		GWL_EXSTYLE,
-		GetWindowLong(hwnd, GWL_EXSTYLE) | 
+		GetWindowLong(hwnd, GWL_EXSTYLE) |
+		WS_EX_TOPMOST |
 		WS_EX_NOACTIVATE |
-		WS_EX_LAYERED
+		WS_EX_TRANSPARENT
 	);
 
-	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, 1);
+	//SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, 1);
 
 	SetWindowText(hwnd, loc->CharName.c_str());
 	// ------------------------------
@@ -111,7 +112,6 @@ void Agent::WndLoop()
 			p1 = std::chrono::system_clock::now();
 
 			UpdateAnim();
-
 		}
 
 		Balloon.AttachToWindow(Window);
@@ -248,6 +248,11 @@ void Agent::Render()
 		SDL_DestroyTexture(texture);
 
 	SDL_RenderPresent(Renderer);
+}
+
+void Agent::QueueLogic()
+{
+	
 }
 
 void Agent::ShowWindow()
