@@ -76,13 +76,17 @@ void AgentFile::Load(std::string path)
 
 	Stream.open(path, std::ios_base::binary | std::ios_base::in);
 
-	if (!Stream.is_open())
+	if (!Stream.is_open()) {
+		SDL_ShowSimpleMessageBox(SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR, "Triple Agent", "Falha ao abrir arquivo.", NULL);
 		return;
+	}
 
 	ReadTo(FileHeader, Stream);
 
-	if (FileHeader.Signature != 0xABCDABC3)
+	if (FileHeader.Signature != 0xABCDABC3) {
+		SDL_ShowSimpleMessageBox(SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR, "Triple Agent", "A assinatura do arquivo fornecido é inválida.", NULL);
 		return; // TODO: código de erro
+	}
 
 	ReadCharInfo(&FileHeader.CharacterInfo);
 
@@ -230,7 +234,7 @@ SDL_Surface* AgentFile::ReadTrayIcon()
 		width, 
 		height, 
 		32, 
-		SDL_PIXELFORMAT_RGBA32
+		SDL_PIXELFORMAT_RGBA4444
 	);
 	SDL_Renderer* rend = SDL_CreateSoftwareRenderer(icon);
 
@@ -249,6 +253,9 @@ SDL_Surface* AgentFile::ReadTrayIcon()
 			SDL_SetRenderDrawColor(rend, iconPixel->r, iconPixel->g, iconPixel->b, 255);
 			SDL_RenderDrawPoint(rend, x, width - y);
 		}
+
+	SDL_FreeSurface(image);
+	SDL_FreeSurface(mask);
 
 	SDL_DestroyRenderer(rend);
 
@@ -313,11 +320,7 @@ SDL_Surface* AgentFile::RasterizeIconImage(IconImage& im)
 	free(im.ColorTable);
 	SDL_FreePalette(palette);
 
-	SDL_Surface* tempS = SDL_ConvertSurfaceFormat(icon, SDL_PIXELFORMAT_RGBA32, 0);
-
-	IMG_SavePNG(tempS, "d:/img.png");
-
-	return tempS;
+	return SDL_ConvertSurfaceFormat(icon, SDL_PIXELFORMAT_RGBA32, 0); // tem q ser
 }
 
 void AgentFile::ReadAnimationInfo(ACSLocator* pos)
@@ -357,7 +360,7 @@ AnimationInfo AgentFile::ReadAnimation(string name)
 
 		fi.Branches = ReadVector<byte, BranchInfo>(str, NULL);
 
-		fi.Overlays = ReadVector<byte, OverlayInfo>(str, NULL);
+		fi.Overlays = ReadVector<byte, OverlayInfo>(str, NULL); // FIXME: infelizmente não funciona desse jeito
 
 		return fi;
 		});
@@ -372,13 +375,11 @@ void AgentFile::ReadImageInfo(ACSLocator* pos)
 	ImagePointers = ReadVector<uint, ImagePointer>(Stream, ReadSimple<ImagePointer>);
 }
 
+// É responsabilidade da função chamadora o descarte correto dessa surface.
 SDL_Surface* AgentFile::ReadImage(uint index)
 {
 	if (index >= ImagePointers.size())
 		return nullptr;
-
-	if (CachedSurfaces.count(index))
-		return CachedSurfaces[index];
 
 	ImagePointer* imgPointer = &ImagePointers[index];
 	ImageInfo imgInfo = {};
@@ -406,7 +407,7 @@ SDL_Surface* AgentFile::ReadImage(uint index)
 	DecompressData(imgInfo.ImageData.Data, imgInfo.ImageData.SizeOfData, uncompressedImage);
 	free(imgInfo.ImageData.Data);
 
-	SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(SDL_SWSURFACE, imgInfo.Width, imgInfo.Height, 8, SDL_PIXELFORMAT_INDEX8);
+	SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, imgInfo.Width, imgInfo.Height, 8, SDL_PIXELFORMAT_INDEX8);
 
 	std::memcpy(surface->pixels, uncompressedImage, uncompressedImageSize);
 
@@ -416,8 +417,6 @@ SDL_Surface* AgentFile::ReadImage(uint index)
 
 	RGBQuad colorKey = CharInfo.Palette[CharInfo.TransparentColorIndex];
 	SDL_SetColorKey(surface, SDL_TRUE, SDL_MapRGB(surface->format, colorKey.Red, colorKey.Green, colorKey.Blue));
-
-	CachedSurfaces.insert({ index, surface });
 
 	return surface;
 }
@@ -495,4 +494,12 @@ void AgentFile::DecompressData(void* inputBuffer, size_t inputSize, byte* output
 			index++;
 		}
 	}
+}
+
+StateInfo* AgentFile::ReadState(string name)
+{
+	if (!AnimationStates.count(name))
+		return nullptr;
+
+	return &AnimationStates[name];
 }

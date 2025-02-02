@@ -4,6 +4,8 @@ Agent::Agent(AgentFile* agf)
 {
 	AgFile = agf;
 
+	CurrentState = States::Showing;
+
 	Window = nullptr;
 	Renderer = nullptr;
 
@@ -16,6 +18,9 @@ Agent::Agent(AgentFile* agf)
 
 void Agent::DoStuff()
 {
+	ThreadMain();
+	return;
+
 	AgentThread = std::thread(&Agent::ThreadMain, this);
 	AgentThread.detach();
 }
@@ -26,26 +31,28 @@ void Agent::SetupWindow()
 {
 	LocalizedInfo* loc = AgFile->GetLocalizedInfo(0x416); // pt-BR
 
-	if (SDL_WasInit(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) 
+	if (SDL_WasInit(SDL_INIT_EVERYTHING)) 
 	{
-		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+		SDL_Init(SDL_INIT_EVERYTHING);
 		IMG_Init(SDL_INIT_EVERYTHING);
+		TTF_Init();
 	}
-	
+
 	Window = SDL_CreateWindow(
 		"Agent",
 		SDL_WINDOWPOS_UNDEFINED, 
 		SDL_WINDOWPOS_UNDEFINED, 
 		AgFile->CharInfo.Width, 
 		AgFile->CharInfo.Height, 
-		SDL_WINDOW_ALWAYS_ON_TOP /*|
-		SDL_WINDOW_BORDERLESS*/
+		SDL_WINDOW_ALWAYS_ON_TOP |
+		SDL_WINDOW_BORDERLESS
 	);
 
 	Renderer = SDL_CreateRenderer(
 		Window,
 		-1,
-		SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED
+		SDL_RENDERER_PRESENTVSYNC | 
+		SDL_RENDERER_ACCELERATED
 	);
 
 	// TODO: tonar isso multi plataforma
@@ -67,7 +74,8 @@ void Agent::SetupWindow()
 		GetWindowLong(hwnd, GWL_EXSTYLE) |
 		WS_EX_TOPMOST |
 		WS_EX_NOACTIVATE |
-		WS_EX_LAYERED
+		WS_EX_LAYERED |
+		WS_EX_MDICHILD
 	);
 
 	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, LWA_COLORKEY);
@@ -82,7 +90,7 @@ void Agent::SetupWindow()
 		AudioInitialized = true;
 
 		Mix_ChannelFinished(AudioFinishedCallback);
-		Mix_OpenAudio(22050, AUDIO_S8, 1, 1024);
+		Mix_OpenAudio(11025, AUDIO_U8, 1, 64);
 	}
 
 	Balloon.Setup(&AgFile->CharInfo.BalloonInfo);
@@ -92,34 +100,35 @@ void Agent::SetupWindow()
 
 void Agent::WndLoop()
 {
-	auto p1 = std::chrono::system_clock::now();
+	unsigned long lastAnimUpdate = SDL_GetTicks64();
+	unsigned long lastRedraw = SDL_GetTicks64();
 
 	//TODO: remover isso
 	Balloon.Show();
-	Balloon.UpdateText(L"Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 Teste balão 123 ");
+	Balloon.UpdateText(L"Ainda, que eu falasse a língua dos homens, ou falasse a língua dos anjos, sem amor nada eu seria.");
 
 	SDL_Event e;
 	while (true) 
 	{
-		while ((SDL_PollEvent(&e)))
-				printf("%d\n", e.type);
+		SDL_PumpEvents();
+		while (SDL_PollEvent(&e)); // TODO: encerrar o agente e liberar o objeto.
 
-		std::chrono::milliseconds dt = std::chrono::duration_cast<std::chrono::milliseconds>
-			(
-				(std::chrono::system_clock::now() - p1)
-			);
-
-		if ((uint)dt.count() >= Interval * 9)
+		if (SDL_GetTicks64() - lastAnimUpdate >= Interval * 10)
 		{
-			p1 = std::chrono::system_clock::now();
+			lastAnimUpdate = SDL_GetTicks64();
 
 			UpdateAnim();
+			PrepareFrame(Frame);
 		}
 
-		Balloon.AttachToWindow(Window);
+		if (SDL_GetTicks64() - lastRedraw < 1000 / 60)
+			continue;
 
+		lastRedraw = SDL_GetTicks64();
+
+		Balloon.AttachToWindow(Window);
 		Render();
-		Balloon.Update();
+		Balloon.Render();
 	}
 }
 
@@ -195,6 +204,26 @@ void Agent::AdvanceFrame(std::vector<BranchInfo> branches)
 	Frame++;
 }
 
+void Agent::PrepareFrame(int index)
+{
+	FrameInfo* fi = GetFrame(index);
+
+	for (auto& surface : FrameLayers)
+		SDL_FreeSurface(surface);
+
+	for (auto& surface : FrameOverlays) 
+		SDL_FreeSurface(surface);
+
+	FrameLayers.clear();
+	FrameOverlays.clear();
+
+	for (auto& imageInfo : fi->Images)
+		FrameLayers.push_back(AgFile->ReadImage(imageInfo.FrameIndex));
+
+	for (auto& overlayInfo : fi->Overlays)
+		FrameOverlays.push_back(AgFile->ReadImage(overlayInfo.ImageIndex));
+}
+
 void Agent::LoadAnimation(string name)
 {
 	CurrentAnimation = AgFile->ReadAnimation(name);
@@ -207,24 +236,62 @@ void Agent::LoadAnimation(string name)
 	StopRequested = 0;
 }
 
+void Agent::LoadAnimationFromState(States state)
+{
+	std::vector<string> stateLookup = {
+		L"unknown",
+		L"Showing",
+		L"Hiding",
+		L"GesturingDown",
+		L"GesturingUp",
+		L"GesturingLeft",
+		L"GesturingRight",
+		L"Listening",
+		L"Hearing",
+		L"IdlingLevel1",
+		L"IdlingLevel2",
+		L"IdlingLevel3",
+		L"MovingDown",
+		L"MovingUp",
+		L"MovingLeft",
+		L"MovingRight",
+		L"Speaking"
+	};
+
+	StateInfo* stateInfo = AgFile->ReadState(stateLookup[(int)state]);
+
+	if (stateInfo == nullptr)
+		return;
+
+	string animName = stateInfo->Animations[stateInfo->Animations.size()];
+
+	LoadAnimation(animName);
+}
+
 FrameInfo* Agent::GetFrame(uint index)
 {
 	return &CurrentAnimation.Frames[index];
 }
 
+bool Agent::CanSpeakOnFrame(uint frame)
+{
+	return GetFrame(frame)->Overlays.size();
+}
+
 void Agent::ThreadMain()
 {
 	SetupWindow();
-	LoadAnimation(L"Searching");
+	LoadAnimation(L"Reading");
 
 	WndLoop();
 }
 
 void Agent::Render()
 {
+	// TODO: renderizar overlays
+
 	FrameInfo* fi = &CurrentAnimation.Frames[Frame];
 
-	SDL_Rect srcRect = { 0, 0, AgFile->CharInfo.Width, AgFile->CharInfo.Height };
 	SDL_Rect targetRect;
 
 	SDL_SetRenderDrawColor(Renderer, 255, 0, 255, 255);
@@ -236,14 +303,22 @@ void Agent::Render()
 	{
 		FrameImage* fImg = &fi->Images[i];
 
-		SDL_Surface* surImg = AgFile->ReadImage(fImg->FrameIndex);
+		SDL_Surface* surImg = FrameLayers[i];
 		SDL_Texture* tex = SDL_CreateTextureFromSurface(Renderer, surImg);
 
-		targetRect = { fImg->OffsetX, fImg->OffsetY, srcRect.w, srcRect.h };
+		targetRect = { fImg->OffsetX, fImg->OffsetY, surImg->w, surImg->h };
 
 		textures.push_back(tex);
 
-		SDL_RenderCopyEx(Renderer, tex, &srcRect, &targetRect, 0, nullptr, SDL_FLIP_VERTICAL);
+		SDL_RenderCopyEx(
+			Renderer, 
+			tex, 
+			NULL, 
+			&targetRect, 
+			0, 
+			nullptr, 
+			SDL_FLIP_VERTICAL
+		);
 	}
 
 	for (auto& texture : textures)
@@ -252,9 +327,37 @@ void Agent::Render()
 	SDL_RenderPresent(Renderer);
 }
 
+void Agent::Queue(Request req)
+{
+	RequestQueue.push(req);
+}
+
 void Agent::QueueLogic()
 {
-	
+	StopRequested = false;
+
+	if (RequestQueue.empty())
+	{
+		// TODO: idle logic
+		return;
+	}
+
+	CurrentState = States::None;
+	CurrentRequest = RequestQueue.front();
+
+	switch (CurrentRequest.Type) {
+	case RequestType::Speak:
+		CurrentState = States::Speaking;
+
+		if (!CanSpeakOnFrame(Frame))
+			LoadAnimationFromState(CurrentState);
+
+		string text = *(string*)CurrentRequest.Data;
+		free(CurrentRequest.Data); // IMPORTANTÍSSIMO (se apagar vc com certeza vai esquecer)
+
+
+		break;
+	}
 }
 
 void Agent::ShowWindow()
@@ -281,24 +384,31 @@ void Agent::PlayAudio(uint index)
 {
 	int availableChannels = Mix_AllocateChannels(-1);
 
-	if (!UsedChannels >= availableChannels)
+	if (UsedChannels >= availableChannels)
 		return;
-
-	UsedChannels++;
 
 	AudioInfo ai = AgFile->ReadAudio(index);
 
 	SDL_RWops* rw = SDL_RWFromMem(ai.Buffer, ai.Size);
+	Mix_Chunk* chunk = Mix_LoadWAV_RW(rw, 1);
 
-	Mix_Chunk* Song = Mix_LoadWAV_RW(rw, 1);
+	ai.RW = rw;
+	ai.Chunk = chunk;
 
-	int channel = Mix_PlayChannel(-1, Song, 0);
+	int channel = Mix_PlayChannel(-1, chunk, 0);
 	AudioData.insert({ channel, ai });
+
+	UsedChannels++;
 }
 
 void Agent::AudioFinishedCallback(int channel)
 {
-	free(AudioData[channel].Buffer);
+	AudioInfo* chanAi = &AudioData[channel];
+
+	SDL_FreeRW(chanAi->RW);
+	Mix_FreeChunk(chanAi->Chunk);
+
+	free(chanAi->Buffer);
 
 	AudioData.erase(channel);
 	UsedChannels--;

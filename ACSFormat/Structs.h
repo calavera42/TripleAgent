@@ -1,5 +1,7 @@
 #pragma once
 #include "..\types.h"
+#include <SDL.h>
+#include <SDL_Mixer.h>
 #include <vector>
 
 struct FrameImage;
@@ -51,6 +53,9 @@ enum class CharacterFlags : uint {
 struct AudioInfo {
 	void* Buffer;
 	uint Size;
+
+	SDL_RWops* RW;
+	Mix_Chunk* Chunk;
 };
 
 #pragma pack(push, 1)

@@ -7,6 +7,28 @@
 #include <chrono>
 #include <queue>
 
+enum class States
+{
+	Showing = 1,
+	Hiding = 2,
+	GesturingDown = 3,
+	GesturingUp = 4,
+	GesturingLeft = 5,
+	GesturingRight = 6,
+	Listening = 7,
+	Hearing = 8,
+	IdlingLevel1 = 9,
+	IdlingLevel2 = 10,
+	IdlingLevel3 = 11,
+	MovingDown = 12,
+	MovingUp = 13,
+	MovingLeft = 14,
+	MovingRight = 15,
+	Speaking = 16,
+
+	None = 0
+};
+
 enum class RequestType {
 	Speak,
 	Animate,
@@ -67,16 +89,25 @@ private:
 	uint Frame = 0;
 	uint LastFrame = 0;
 
+	std::vector<SDL_Surface*> FrameLayers = {};
+	std::vector<SDL_Surface*> FrameOverlays = {};
+
 	uint Interval = 0;
 
 	bool AnimPaused = false;
 	bool StopRequested = false;
 
-	void UpdateAnim();
-	void AdvanceFrame(std::vector<BranchInfo> branches);
 	void LoadAnimation(string name);
 
+	void UpdateAnim();
+
+	void AdvanceFrame(std::vector<BranchInfo> branches);
+	void PrepareFrame(int index);
+
+	void LoadAnimationFromState(States state);
+
 	FrameInfo* GetFrame(uint index);
+	bool CanSpeakOnFrame(uint frame);
 	// ------------
 
 	// ThreadMain
@@ -84,7 +115,11 @@ private:
 	// ------------
 
 	// Fila
+	States CurrentState;
+	Request CurrentRequest = {};
+
 	std::queue<Request> RequestQueue;
+	void Queue(Request req);
 
 	void QueueLogic();
 	// ------------
@@ -94,5 +129,7 @@ public:
 	AgentFile* AgFile;
 
 	void DoStuff();
+
+
 };
 

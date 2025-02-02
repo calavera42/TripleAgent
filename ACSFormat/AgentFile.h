@@ -34,8 +34,6 @@ private:
 
 	std::map<ushort, LocalizedInfo> LocalizationInfo = {};
 
-	std::map<uint, SDL_Surface*> CachedSurfaces = {};
-
 	SDL_Palette CharacterPalette = {};
 
 	std::ifstream Stream;
@@ -61,6 +59,7 @@ private:
 	void ReadImageInfo(ACSLocator* pos);
 	void ReadAudioInfo(ACSLocator* pos);
 	void DecompressData(void* inputBuffer, size_t inputSize, byte* outputBuffer);
+
 public:
 	SDL_Surface* AgentTrayIcon = {};
 	void Load(std::string path);
@@ -69,7 +68,10 @@ public:
 
 	LocalizedInfo* GetLocalizedInfo(ushort langId);
 
+	StateInfo* ReadState(string name);
 	AnimationInfo ReadAnimation(string name);
+
 	SDL_Surface* ReadImage(uint index);
+
 	AudioInfo ReadAudio(uint index);
 };

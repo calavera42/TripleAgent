@@ -5,7 +5,7 @@
 
 int main(int argc, char** argv) {
 	AgentFile af = {};
-	af.Load("peedy.acs");
+	af.Load("c:/users/gregd/desktop/merlin.acs");
 
 	Agent ag = Agent(&af);
 

@@ -23,6 +23,8 @@ enum class WindowQuadrant {
 class BalloonWnd
 {
 private:
+	bool Created = false;
+
 	SDL_Window* Window = nullptr;
 	SDL_Renderer* Renderer = nullptr;
 
@@ -30,6 +32,9 @@ private:
 
 	TTF_Font* Font = nullptr;
 	string BalloonText = L"";
+
+	SDL_Surface* TextSurface = nullptr;
+	SDL_Texture* TextTexture = nullptr;
 
 	const int CornerDiameter = 12;
 	const int TipDepth = 16;
@@ -42,13 +47,12 @@ private:
 
 	Rect GetBounds();
 
-	void Render(Rect bounds);
+	void RenderBalloonShape(Rect bounds);
 
-	void RenderWrappedText(string text, int posX, int posY, RGBQuad color);
-	Rect RenderText(string text, int x, int y, RGBQuad color);
+	void PrepareText(string text, int posX, int posY, RGBQuad color);
 
 	void FillTriangle(SDL_Point v1, SDL_Point v2, SDL_Point v3, RGBQuad color);
-	bool PointInTriangle(SDL_Point point, SDL_Point p1, SDL_Point p2, SDL_Point p3);
+	bool IsPointInTriangle(SDL_Point point, SDL_Point p1, SDL_Point p2, SDL_Point p3);
 	float Sign(SDL_Point p1, SDL_Point p2, SDL_Point p3);
 
 	void DrawCorner(SDL_Point pos, int diameter, bool flipX = false, bool flipY = false);
@@ -59,14 +63,14 @@ public:
 
 	TipQuadrant TipQuad = TipQuadrant::Left;
 
-	void Setup(BalloonInfo* bi);
+	int Setup(BalloonInfo* bi);
 
-	void AttachToWindow(SDL_Window* agentWindow);
+	void AttachToWindow(SDL_Window * agentWindow);
 	void UpdateText(string text);
 
 	void Show();
 	void Hide();
 
-	void Update();
+	void Render();
 };
 
