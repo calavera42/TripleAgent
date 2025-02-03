@@ -4,6 +4,7 @@
 #include <fstream>
 
 int main(int argc, char** argv) {
+
 	AgentFile af = {};
 	af.Load("c:/users/gregd/desktop/merlin.acs");
 

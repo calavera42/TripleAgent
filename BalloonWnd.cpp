@@ -37,8 +37,8 @@ int BalloonWnd::Setup(BalloonInfo* bi)
 	SetWindowLong(
 		hwnd,
 		GWL_EXSTYLE,
-		WS_EX_NOACTIVATE |
-		WS_EX_LAYERED
+		WS_EX_LAYERED |
+		WS_EX_MDICHILD
 	);
 
 	SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);

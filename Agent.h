@@ -121,7 +121,7 @@ private:
 	std::queue<Request> RequestQueue;
 	void Queue(Request req);
 
-	void QueueLogic();
+	void AnimationEndLogic();
 	// ------------
 public:
 	Agent(AgentFile* agf);

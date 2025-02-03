@@ -55,6 +55,7 @@ void Agent::SetupWindow()
 		SDL_RENDERER_ACCELERATED
 	);
 
+	// FIXME: topmost ainda não foi consertado.
 	// TODO: tonar isso multi plataforma
 	SDL_SysWMinfo wmInfo;
 	SDL_VERSION(&wmInfo.version);
@@ -71,12 +72,13 @@ void Agent::SetupWindow()
 	SetWindowLong(
 		hwnd,
 		GWL_EXSTYLE,
-		GetWindowLong(hwnd, GWL_EXSTYLE) |
-		WS_EX_TOPMOST |
-		WS_EX_NOACTIVATE |
-		WS_EX_LAYERED |
-		WS_EX_MDICHILD
+		WS_EX_LAYERED
 	);
+
+	SetForegroundWindow(hwnd);
+	SetActiveWindow(hwnd);
+
+	SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
 
 	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, LWA_COLORKEY);
 
@@ -126,8 +128,9 @@ void Agent::WndLoop()
 
 		lastRedraw = SDL_GetTicks64();
 
-		Balloon.AttachToWindow(Window);
 		Render();
+
+		Balloon.AttachToWindow(Window);
 		Balloon.Render();
 	}
 }
@@ -139,10 +142,10 @@ void Agent::UpdateAnim()
 
 	FrameInfo* currentFrame = GetFrame(Frame);
 
+	AdvanceFrame(currentFrame->Branches);
+
 	if (currentFrame->AudioIndex != -1)
 		PlayAudio(currentFrame->AudioIndex);
-
-	AdvanceFrame(currentFrame->Branches);
 
 	if (Frame < CurrentAnimation.Frames.size() - 1 && !StopRequested)
 	{
@@ -151,6 +154,16 @@ void Agent::UpdateAnim()
 		Interval = currentFrame->FrameDuration;
 		return;
 	}
+
+	/*
+	* TODO: quando chegar no fim da animação, deixar toda lógica nessa função abaixo.
+	* 
+	* Seria interessante fazer a animação esperar no último frame e deixar essa
+	* função resolver quando é útil que o agente volte à idlepose.
+	* 
+	* (Talvez implementar um sistem de estado da animação, ex.: readytospeak; idlepose; stopped; returning)
+	*/
+	AnimationEndLogic();
 
 	switch (CurrentAnimation.Transition) 
 	{
@@ -171,7 +184,6 @@ void Agent::UpdateAnim()
 		if (Frame == -2)
 			Frame = LastFrame;
 	case TransitionType::None:
-		//TODO: avançar fila
 		AnimPaused = true;
 		break;
 	}
@@ -332,7 +344,7 @@ void Agent::Queue(Request req)
 	RequestQueue.push(req);
 }
 
-void Agent::QueueLogic()
+void Agent::AnimationEndLogic()
 {
 	StopRequested = false;
 
@@ -346,15 +358,7 @@ void Agent::QueueLogic()
 	CurrentRequest = RequestQueue.front();
 
 	switch (CurrentRequest.Type) {
-	case RequestType::Speak:
-		CurrentState = States::Speaking;
-
-		if (!CanSpeakOnFrame(Frame))
-			LoadAnimationFromState(CurrentState);
-
-		string text = *(string*)CurrentRequest.Data;
-		free(CurrentRequest.Data); // IMPORTANTÍSSIMO (se apagar vc com certeza vai esquecer)
-
+	case RequestType::Animate:
 
 		break;
 	}
@@ -405,7 +409,18 @@ void Agent::AudioFinishedCallback(int channel)
 {
 	AudioInfo* chanAi = &AudioData[channel];
 
-	SDL_FreeRW(chanAi->RW);
+	/*
+	* "Only use SDL_FreeRW() on pointers returned by SDL_AllocRW(). The pointer is invalid as 
+	* soon as this function returns. Any extra memory allocated during creation of the SDL_RWops 
+	* is not freed by SDL_FreeRW(); the programmer must be responsible for managing that memory in 
+	* their close method."
+	* 
+	* eis aí o motivo do antigo crash.
+	* 
+	* ou pode ser o freesrc na criação do mixchunk
+	*/
+	//SDL_FreeRW(chanAi->RW);
+
 	Mix_FreeChunk(chanAi->Chunk);
 
 	free(chanAi->Buffer);
