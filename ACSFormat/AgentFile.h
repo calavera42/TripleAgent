@@ -74,4 +74,6 @@ public:
 	SDL_Surface* ReadImage(uint index);
 
 	AudioInfo ReadAudio(uint index);
+
+	void AnimationInState();
 };

@@ -4,7 +4,7 @@ Agent::Agent(AgentFile* agf)
 {
 	AgFile = agf;
 
-	CurrentState = States::Showing;
+	CurrentState = AgentState::Showing;
 
 	Window = nullptr;
 	Renderer = nullptr;
@@ -102,8 +102,8 @@ void Agent::SetupWindow()
 
 void Agent::WndLoop()
 {
-	unsigned long lastAnimUpdate = SDL_GetTicks64();
-	unsigned long lastRedraw = SDL_GetTicks64();
+	unsigned long long lastAnimUpdate = SDL_GetTicks64();
+	unsigned long long lastRedraw = SDL_GetTicks64();
 
 	//TODO: remover isso
 	Balloon.Show();
@@ -121,6 +121,9 @@ void Agent::WndLoop()
 
 			UpdateAnim();
 			PrepareFrame(Frame);
+
+			if (GetFrame(Frame)->AudioIndex != -1)
+				PlayAudio(GetFrame(Frame)->AudioIndex);
 		}
 
 		if (SDL_GetTicks64() - lastRedraw < 1000 / 60)
@@ -137,63 +140,61 @@ void Agent::WndLoop()
 
 void Agent::UpdateAnim()
 {
-	if (AnimPaused || !Shown)
-		return;
-
 	FrameInfo* currentFrame = GetFrame(Frame);
 
-	AdvanceFrame(currentFrame->Branches);
-
-	if (currentFrame->AudioIndex != -1)
-		PlayAudio(currentFrame->AudioIndex);
-
-	if (Frame < CurrentAnimation.Frames.size() - 1 && !StopRequested)
+	switch (AnimState) 
 	{
-		if (currentFrame->FrameDuration == 0)
-			UpdateAnim();
-		Interval = currentFrame->FrameDuration;
-		return;
-	}
-
-	/*
-	* TODO: quando chegar no fim da animação, deixar toda lógica nessa função abaixo.
-	* 
-	* Seria interessante fazer a animação esperar no último frame e deixar essa
-	* função resolver quando é útil que o agente volte à idlepose.
-	* 
-	* (Talvez implementar um sistem de estado da animação, ex.: readytospeak; idlepose; stopped; returning)
-	*/
-	AnimationEndLogic();
-
-	switch (CurrentAnimation.Transition) 
-	{
-	case TransitionType::ReturnAnimation:
-		LoadAnimation(CurrentAnimation.ReturnAnimation);
-		break;
-	case TransitionType::ExitBranches:
-		StopRequested = true;
-
+	case AnimationState::Progressing:
 		LastFrame = Frame;
-		Frame = currentFrame->ExitFrameIndex;
 
-		if (Frame == -1) 
+		AdvanceFrame(currentFrame->Branches);
+		Interval = currentFrame->FrameDuration;
+
+		if (Frame == CurrentAnimation.Frames.size() - 1 || Frame < 0)
+			AnimState = AnimationState::Finished;
+
+		if (GetFrame(Frame)->FrameDuration == 0) 
+			UpdateAnim();
+		break;
+	case AnimationState::Finished:
+		Frame = LastFrame;
+
+		AnimState = AnimationState::IdlePose;
+
+		if (CanSpeakOnFrame(LastFrame))
+			AnimState = AnimationState::SpeakReady;
+		break;
+	case AnimationState::Returning:
+		switch (CurrentAnimation.Transition)
 		{
-			Frame++;
+		case TransitionType::ExitBranches:
+			LastFrame = Frame;
+			Frame = currentFrame->ExitFrameIndex;
+
+			if (Frame > 0)
+				break;
+
+			if (Frame == -1) 
+			{
+				Frame++;
+				break;
+			}
+
+			// frame == -2
+
+			Frame = LastFrame;
+
+			AnimState = AnimationState::IdlePose;
+			break;
+		case TransitionType::ReturnAnimation:
+			LoadAnimation(CurrentAnimation.ReturnAnimation);
+			break;
+		case TransitionType::None:
+			AnimState = AnimationState::IdlePose;
 			break;
 		}
-		if (Frame == -2)
-			Frame = LastFrame;
-	case TransitionType::None:
-		AnimPaused = true;
 		break;
 	}
-
-	currentFrame = GetFrame(Frame);
-
-	if (currentFrame->FrameDuration == 0)
-		UpdateAnim();
-
-	Interval = currentFrame->FrameDuration;
 }
 
 void Agent::AdvanceFrame(std::vector<BranchInfo> branches)
@@ -218,6 +219,9 @@ void Agent::AdvanceFrame(std::vector<BranchInfo> branches)
 
 void Agent::PrepareFrame(int index)
 {
+	if (AnimState == AnimationState::Finished)
+		return;
+
 	FrameInfo* fi = GetFrame(index);
 
 	for (auto& surface : FrameLayers)
@@ -248,7 +252,7 @@ void Agent::LoadAnimation(string name)
 	StopRequested = 0;
 }
 
-void Agent::LoadAnimationFromState(States state)
+void Agent::LoadAnimationFromState(AgentState state)
 {
 	std::vector<string> stateLookup = {
 		L"unknown",
@@ -293,7 +297,7 @@ bool Agent::CanSpeakOnFrame(uint frame)
 void Agent::ThreadMain()
 {
 	SetupWindow();
-	LoadAnimation(L"Reading");
+	LoadAnimation(L"Idle2_1");
 
 	WndLoop();
 }
@@ -346,22 +350,7 @@ void Agent::Queue(Request req)
 
 void Agent::AnimationEndLogic()
 {
-	StopRequested = false;
-
-	if (RequestQueue.empty())
-	{
-		// TODO: idle logic
-		return;
-	}
-
-	CurrentState = States::None;
-	CurrentRequest = RequestQueue.front();
-
-	switch (CurrentRequest.Type) {
-	case RequestType::Animate:
-
-		break;
-	}
+	
 }
 
 void Agent::ShowWindow()
@@ -418,6 +407,9 @@ void Agent::AudioFinishedCallback(int channel)
 	* eis aí o motivo do antigo crash.
 	* 
 	* ou pode ser o freesrc na criação do mixchunk
+	* 
+	* foda-se, funciona agora e não vaza memória
+	* big hugs
 	*/
 	//SDL_FreeRW(chanAi->RW);
 

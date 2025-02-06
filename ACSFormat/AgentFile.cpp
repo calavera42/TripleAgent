@@ -360,7 +360,29 @@ AnimationInfo AgentFile::ReadAnimation(string name)
 
 		fi.Branches = ReadVector<byte, BranchInfo>(str, NULL);
 
-		fi.Overlays = ReadVector<byte, OverlayInfo>(str, NULL); // FIXME: infelizmente não funciona desse jeito
+		fi.Overlays = ReadVector<byte, OverlayInfo>(str, [](std::ifstream& str) -> OverlayInfo {
+			OverlayInfo oi = {};
+
+			ReadTo(oi.OverlayType, str);
+			ReadTo(oi.ReplaceTopImage, str);
+			ReadTo(oi.ImageIndex, str);
+			ReadTo(oi.Unknown, str);
+			ReadTo(oi.HasRegionData, str);
+			ReadTo(oi.OffsetX, str);
+			ReadTo(oi.OffsetY, str);
+			ReadTo(oi.Width, str);
+			ReadTo(oi.Height, str);
+
+			if (oi.HasRegionData)
+			{
+				oi.RegionData = {};
+
+				ReadTo(oi.RegionData.SizeOfData, str);
+				oi.RegionData.Data = ReadElements<byte>(str, oi.RegionData.SizeOfData);
+			}
+
+			return oi;
+		});
 
 		return fi;
 		});

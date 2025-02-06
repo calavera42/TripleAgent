@@ -7,26 +7,37 @@
 #include <chrono>
 #include <queue>
 
-enum class States
+enum class AgentState
 {
-	Showing = 1,
-	Hiding = 2,
-	GesturingDown = 3,
-	GesturingUp = 4,
-	GesturingLeft = 5,
-	GesturingRight = 6,
-	Listening = 7,
-	Hearing = 8,
-	IdlingLevel1 = 9,
-	IdlingLevel2 = 10,
-	IdlingLevel3 = 11,
-	MovingDown = 12,
-	MovingUp = 13,
-	MovingLeft = 14,
-	MovingRight = 15,
-	Speaking = 16,
+	None,
+	Showing,
+	Hiding,
+	GesturingDown,
+	GesturingUp,
+	GesturingLeft,
+	GesturingRight,
+	Listening,
+	Hearing,
+	IdlingLevel1,
+	IdlingLevel2,
+	IdlingLevel3,
+	MovingDown,
+	MovingUp,
+	MovingLeft,
+	MovingRight,
+	Speaking
+};
 
-	None = 0
+enum class AnimationState {
+	Paused,
+	Progressing,
+	Finished,
+	Returning,
+
+	SpeakReady,
+	MoveReady,
+
+	IdlePose
 };
 
 enum class RequestType {
@@ -89,6 +100,8 @@ private:
 	uint Frame = 0;
 	uint LastFrame = 0;
 
+	AnimationState AnimState = AnimationState::Progressing;
+
 	std::vector<SDL_Surface*> FrameLayers = {};
 	std::vector<SDL_Surface*> FrameOverlays = {};
 
@@ -104,7 +117,7 @@ private:
 	void AdvanceFrame(std::vector<BranchInfo> branches);
 	void PrepareFrame(int index);
 
-	void LoadAnimationFromState(States state);
+	void LoadAnimationFromState(AgentState state);
 
 	FrameInfo* GetFrame(uint index);
 	bool CanSpeakOnFrame(uint frame);
@@ -115,7 +128,7 @@ private:
 	// ------------
 
 	// Fila
-	States CurrentState;
+	AgentState CurrentState;
 	Request CurrentRequest = {};
 
 	std::queue<Request> RequestQueue;
