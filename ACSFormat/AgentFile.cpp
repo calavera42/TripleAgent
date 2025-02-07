@@ -95,6 +95,11 @@ void AgentFile::Load(std::string path)
 	ReadAudioInfo(&FileHeader.AudioInfo);
 }
 
+void AgentFile::NormalizeString(string& s)
+{
+	std::transform(s.begin(), s.end(), s.begin(), std::tolower);
+}
+
 void AgentFile::ReadCharInfo(ACSLocator* pos)
 {
 	JumpTo(pos->Offset, Stream);
@@ -330,6 +335,8 @@ void AgentFile::ReadAnimationInfo(ACSLocator* pos)
 		AnimationPointer anim = {};
 		anim.AnimationName = ReadString(str);
 		ReadTo(anim.InfoLocation, str);
+
+		std::transform(anim.AnimationName.begin(), anim.AnimationName.end(), anim.AnimationName.begin(), std::tolower);
 		return anim;
 	});
 
@@ -339,6 +346,8 @@ void AgentFile::ReadAnimationInfo(ACSLocator* pos)
 
 AnimationInfo AgentFile::ReadAnimation(string name)
 {
+	NormalizeString(name);
+
 	AnimationPointer* pointer = &Animations[name];
 	ACSLocator* pos = &pointer->InfoLocation;
 
@@ -449,7 +458,7 @@ AudioInfo AgentFile::ReadAudio(uint index)
 
 	JumpTo(ap.AudioData.Offset, Stream);
 
-	void* audioData = (void*)calloc(ap.AudioData.Size, 1);
+	void* audioData = calloc(ap.AudioData.Size, 1);
 
 	Stream.read((char*)audioData, ap.AudioData.Size);
 
@@ -520,6 +529,7 @@ void AgentFile::DecompressData(void* inputBuffer, size_t inputSize, byte* output
 
 StateInfo* AgentFile::ReadState(string name)
 {
+	NormalizeString(name);
 	if (!AnimationStates.count(name))
 		return nullptr;
 

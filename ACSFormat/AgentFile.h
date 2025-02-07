@@ -3,7 +3,7 @@
 
 #include "BitReader.h"
 
-#include <Windows.h>
+//#include <Windows.h>
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -16,6 +16,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <algorithm>
 
 #define ReadTo(x, st) st.read((char*)&x, sizeof(x))
 #define JumpTo(x, st) st.seekg(x, std::ios_base::beg)
@@ -49,6 +50,8 @@ private:
 	template <typename Type>
 	static Type ReadSimple(std::ifstream& str);
 
+	void NormalizeString(string& s);
+
 	void ReadCharInfo(ACSLocator* pos);
 	void ReadVoiceInfo();
 	void ReadBalloonInfo();
@@ -74,6 +77,4 @@ public:
 	SDL_Surface* ReadImage(uint index);
 
 	AudioInfo ReadAudio(uint index);
-
-	void AnimationInState();
 };

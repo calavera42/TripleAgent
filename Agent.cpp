@@ -44,7 +44,7 @@ void Agent::SetupWindow()
 		SDL_WINDOWPOS_UNDEFINED, 
 		AgFile->CharInfo.Width, 
 		AgFile->CharInfo.Height, 
-		SDL_WINDOW_ALWAYS_ON_TOP |
+		SDL_WINDOW_ALWAYS_ON_TOP | 
 		SDL_WINDOW_BORDERLESS
 	);
 
@@ -55,35 +55,32 @@ void Agent::SetupWindow()
 		SDL_RENDERER_ACCELERATED
 	);
 
-	// FIXME: topmost ainda não foi consertado.
-	// TODO: tonar isso multi plataforma
-	SDL_SysWMinfo wmInfo;
-	SDL_VERSION(&wmInfo.version);
-	SDL_GetWindowWMInfo(Window, &wmInfo);
-	HWND hwnd = wmInfo.info.win.window;
+	//// TODO: tonar isso multi plataforma
+	//SDL_SysWMinfo wmInfo;
+	//SDL_VERSION(&wmInfo.version);
+	//SDL_GetWindowWMInfo(Window, &wmInfo);
+	//HWND hwnd = wmInfo.info.win.window;
 
-	SetWindowLong(
-		hwnd,
-		GWL_STYLE,
-		(GetWindowLong(hwnd, GWL_STYLE) | WS_POPUP) & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
-		);
+	//SetWindowLong(
+	//	hwnd,
+	//	GWL_STYLE,
+	//	(GetWindowLong(hwnd, GWL_STYLE) | WS_POPUP) & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
+	//	);
 
-	// Janela que não rouba o foco, com suporte para transparência e não sai da tela
-	SetWindowLong(
-		hwnd,
-		GWL_EXSTYLE,
-		WS_EX_LAYERED
-	);
+	//// Janela que não rouba o foco, com suporte para transparência e não sai da tela
+	//SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
 
-	SetForegroundWindow(hwnd);
-	SetActiveWindow(hwnd);
+	//SetWindowLong(
+	//	hwnd,
+	//	GWL_EXSTYLE,
+	//	WS_EX_LAYERED |
+	//	WS_EX_NOACTIVATE
+	//);
 
-	SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
+	//SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, LWA_COLORKEY);
 
-	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, LWA_COLORKEY);
-
-	SetWindowText(hwnd, loc->CharName.c_str());
-	// ------------------------------
+	//SetWindowText(hwnd, loc->CharName.c_str());
+	//// ------------------------------
 
 	SDL_SetWindowIcon(Window, AgFile->AgentTrayIcon);
 
@@ -161,8 +158,13 @@ void Agent::UpdateAnim()
 
 		AnimState = AnimationState::IdlePose;
 
-		if (CanSpeakOnFrame(LastFrame))
+		if (CanSpeakOnFrame(LastFrame)) {
 			AnimState = AnimationState::SpeakReady;
+			break;
+		}
+
+		if (CurrentState > AgentState::IdlingLevel3 && CurrentState < AgentState::Speaking)
+			AnimState = AnimationState::MoveReady;
 		break;
 	case AnimationState::Returning:
 		switch (CurrentAnimation.Transition)
