@@ -77,14 +77,14 @@ void AgentFile::Load(std::string path)
 	Stream.open(path, std::ios_base::binary | std::ios_base::in);
 
 	if (!Stream.is_open()) {
-		SDL_ShowSimpleMessageBox(SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR, "Triple Agent", "Falha ao abrir arquivo.", NULL);
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Triple Agent", "Falha ao abrir arquivo.", NULL);
 		return;
 	}
 
 	ReadTo(FileHeader, Stream);
 
 	if (FileHeader.Signature != 0xABCDABC3) {
-		SDL_ShowSimpleMessageBox(SDL_MessageBoxFlags::SDL_MESSAGEBOX_ERROR, "Triple Agent", "A assinatura do arquivo fornecido é inválida.", NULL);
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Triple Agent", "A assinatura do arquivo fornecido é inválida.", NULL);
 		return; // TODO: código de erro
 	}
 
@@ -120,16 +120,17 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 	ReadVoiceInfo();
 	ReadBalloonInfo();
 
-	CharInfo.Palette = ReadVector<uint, RGBQuad>(Stream, NULL);
+	std::vector<RGBQuad> colors = ReadVector<uint, RGBQuad>(Stream, NULL);
 
-	CharacterPalette.ncolors = (int)CharInfo.Palette.size();
-	CharacterPalette.colors = (SDL_Color*)calloc(CharInfo.Palette.size(), sizeof(RGBQuad));
+	CharacterPalette = SDL_CreatePalette(CharInfo.Palette.size());
 
 	for (int i = 0; i < CharInfo.Palette.size(); i++)
 	{
-		RGBQuad rgb = CharInfo.Palette[i];
+		RGBQuad rgb = colors[i];
 
-		CharacterPalette.colors[i] = SDL_Color{ rgb.Red, rgb.Green, rgb.Blue, 255 };
+		SDL_Color col = { rgb.Red, rgb.Green, rgb.Blue, 255 };
+
+		SDL_SetPaletteColors(CharacterPalette, &col, i, 1);
 	}
 
 	ReadTo(CharInfo.TrayIconEnabled, Stream);
@@ -234,11 +235,9 @@ SDL_Surface* AgentFile::ReadTrayIcon()
 	int width = output.ColorBitmapData.IconHeader.Width;
 	int height = output.ColorBitmapData.IconHeader.Height;
 
-	SDL_Surface* icon = SDL_CreateRGBSurfaceWithFormat(
-		0, 
+	SDL_Surface* icon = SDL_CreateSurface(
 		width, 
-		height, 
-		32, 
+		height,
 		SDL_PIXELFORMAT_RGBA4444
 	);
 	SDL_Renderer* rend = SDL_CreateSoftwareRenderer(icon);
@@ -256,11 +255,11 @@ SDL_Surface* AgentFile::ReadTrayIcon()
 				continue;
 
 			SDL_SetRenderDrawColor(rend, iconPixel->r, iconPixel->g, iconPixel->b, 255);
-			SDL_RenderDrawPoint(rend, x, width - y);
+			SDL_RenderPoint(rend, x, width - y);
 		}
 
-	SDL_FreeSurface(image);
-	SDL_FreeSurface(mask);
+	SDL_DestroySurface(image);
+	SDL_DestroySurface(mask);
 
 	SDL_DestroyRenderer(rend);
 
@@ -294,12 +293,12 @@ SDL_Surface* AgentFile::RasterizeIconImage(IconImage& im)
 		SDL_PIXELTYPE_INDEX8
 	};
 
-	SDL_Surface* icon = SDL_CreateRGBSurfaceWithFormat(
-		0,
+	SDL_Surface* icon = SDL_CreateSurface(
 		im.IconHeader.Width,
 		im.IconHeader.Height,
-		32,
-		SDL_DEFINE_PIXELFORMAT(
+		
+
+		(SDL_PixelFormat)SDL_DEFINE_PIXELFORMAT(
 			lookup[im.IconHeader.BitsPerPixel],
 			SDL_BITMAPORDER_4321,
 			0,
@@ -308,7 +307,7 @@ SDL_Surface* AgentFile::RasterizeIconImage(IconImage& im)
 		)
 	);
 
-	SDL_Palette* palette = SDL_AllocPalette(im.IconHeader.ColorUsed);
+	SDL_Palette* palette = SDL_CreatePalette(im.IconHeader.ColorUsed);
 
 	for (int i = 0; i < palette->ncolors; i++) {
 		RGBQuad col = im.ColorTable[i];
@@ -323,9 +322,9 @@ SDL_Surface* AgentFile::RasterizeIconImage(IconImage& im)
 
 	free(im.Data);
 	free(im.ColorTable);
-	SDL_FreePalette(palette);
+	SDL_DestroyPalette(palette);
 
-	return SDL_ConvertSurfaceFormat(icon, SDL_PIXELFORMAT_RGBA32, 0); // tem q ser
+	return SDL_ConvertSurface(icon, SDL_PIXELFORMAT_RGBA32); // tem q ser
 }
 
 void AgentFile::ReadAnimationInfo(ACSLocator* pos)
@@ -438,16 +437,16 @@ SDL_Surface* AgentFile::ReadImage(uint index)
 	DecompressData(imgInfo.ImageData.Data, imgInfo.ImageData.SizeOfData, uncompressedImage);
 	free(imgInfo.ImageData.Data);
 
-	SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, imgInfo.Width, imgInfo.Height, 8, SDL_PIXELFORMAT_INDEX8);
+	SDL_Surface* surface = SDL_CreateSurface(imgInfo.Width, imgInfo.Height, SDL_PIXELFORMAT_INDEX8);
 
 	std::memcpy(surface->pixels, uncompressedImage, uncompressedImageSize);
 
 	free(uncompressedImage);
 
-	SDL_SetSurfacePalette(surface, &CharacterPalette);
+	SDL_SetSurfacePalette(surface, CharacterPalette);
 
 	RGBQuad colorKey = CharInfo.Palette[CharInfo.TransparentColorIndex];
-	SDL_SetColorKey(surface, SDL_TRUE, SDL_MapRGB(surface->format, colorKey.Red, colorKey.Green, colorKey.Blue));
+	SDL_SetSurfaceColorKey(surface, true, SDL_MapSurfaceRGB(surface, colorKey.Red, colorKey.Green, colorKey.Blue));
 
 	return surface;
 }

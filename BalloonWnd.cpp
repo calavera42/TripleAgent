@@ -4,13 +4,12 @@ int BalloonWnd::Setup(BalloonInfo* bi)
 {
 	Window = SDL_CreateWindow(
 		"bloon",
-		SDL_WINDOWPOS_UNDEFINED, 
-		SDL_WINDOWPOS_UNDEFINED, 
 		30,
 		30,
 		SDL_WINDOW_BORDERLESS | 
 		SDL_WINDOW_ALWAYS_ON_TOP |
-		SDL_WINDOW_HIDDEN
+		SDL_WINDOW_HIDDEN |
+		SDL_WINDOW_TRANSPARENT
 	);
 
 	if (Window == nullptr)
@@ -18,9 +17,7 @@ int BalloonWnd::Setup(BalloonInfo* bi)
 
 	Renderer = SDL_CreateRenderer(
 		Window, 
-		-1, 
-		SDL_RENDERER_PRESENTVSYNC | 
-		SDL_RENDERER_ACCELERATED
+		NULL
 	);
 
 	if (Renderer == nullptr)
@@ -28,35 +25,14 @@ int BalloonWnd::Setup(BalloonInfo* bi)
 
 	BalloonStyle = bi;
 
-	SDL_SysWMinfo wmInfo;
-	SDL_VERSION(&wmInfo.version);
-	SDL_GetWindowWMInfo(Window, &wmInfo);
-	HWND hwnd = wmInfo.info.win.window;
-
-	// Janela que não rouba o foco, com suporte para transparência e não sai da tela
-	SetWindowLong(
-		hwnd,
-		GWL_EXSTYLE,
-		WS_EX_LAYERED |
-		WS_EX_MDICHILD
-	);
-
-	SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
-
-	SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, LWA_COLORKEY);
-	// ------------------------------------
-
 	TTF_Init();
 
 	// https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-createfonta#parameters
-	int fontSizePt = (-BalloonStyle->FontHeight * 72) / GetDeviceCaps(GetWindowDC(hwnd), LOGPIXELSY);
 
 	Font = TTF_OpenFont("c:/windows/fonts/arial.ttf", std::abs(BalloonStyle->FontHeight));
 
 	if (Font == nullptr)
 		return -1;
-
-	FontSizePt = fontSizePt;
 
 	Created = true;
 
@@ -81,7 +57,7 @@ void BalloonWnd::AttachToWindow(SDL_Window * agentWindow)
 	SDL_GetWindowPosition(agentWindow, &agRect.x, &agRect.y);
 	SDL_GetWindowSizeInPixels(agentWindow, &agRect.w, &agRect.h);
 
-	int agDisplay = SDL_GetWindowDisplayIndex(agentWindow);
+	int agDisplay = SDL_GetDisplayForWindow(agentWindow);
 
 	SDL_GetDisplayBounds(agDisplay, (SDL_Rect*)&dsRect);
 
@@ -134,7 +110,7 @@ void BalloonWnd::UpdateText(string text)
 
 	BalloonText = text;
 
-	SDL_FreeSurface(TextSurface);
+	SDL_DestroySurface(TextSurface);
 	SDL_DestroyTexture(TextTexture);
 
 	PrepareText(BalloonText, CornerDiameter, CornerDiameter, BalloonStyle->ForegroundColor);
@@ -170,14 +146,14 @@ void BalloonWnd::Render()
 
 	RenderBalloonShape(bounds);
 
-	SDL_Rect textTargetRect = {
-		(TipQuad == TipQuadrant::Left ? TipDepth : 0) + CornerDiameter,
-		(TipQuad == TipQuadrant::Top ? TipDepth : 0) + CornerDiameter,
-		TextSurface->w,
-		TextSurface->h
+	SDL_FRect textTargetRect = {
+		(float)(TipQuad == TipQuadrant::Left ? TipDepth : 0) + CornerDiameter,
+		(float)(TipQuad == TipQuadrant::Top ? TipDepth : 0) + CornerDiameter,
+		(float)TextSurface->w,
+		(float)TextSurface->h
 	};
 
-	SDL_RenderCopy(
+	SDL_RenderTexture(
 		Renderer,
 		TextTexture,
 		NULL,
@@ -220,7 +196,7 @@ void BalloonWnd::RenderBalloonShape(Rect bounds)
 		{ TipDepth, 0 }, { -TipDepth, 0 }
 	};
 
-	SDL_Rect balloonRect = { bounds.x, bounds.y, bounds.w, bounds.h };
+	SDL_FRect balloonRect = { bounds.x, bounds.y, bounds.w, bounds.h };
 
 	switch (TipQuad) {
 	case TipQuadrant::Top:
@@ -282,7 +258,7 @@ void BalloonWnd::RenderBalloonShape(Rect bounds)
 		255
 	);
 
-	SDL_RenderDrawRect(Renderer, &balloonRect);
+	SDL_RenderRect(Renderer, &balloonRect);
 
 	SDL_SetRenderDrawColor(
 		Renderer,
@@ -302,8 +278,8 @@ void BalloonWnd::RenderBalloonShape(Rect bounds)
 		255
 	);
 
-	SDL_RenderDrawLine(Renderer, tipPoints[0].x, tipPoints[0].y, tipPoints[1].x, tipPoints[1].y);
-	SDL_RenderDrawLine(Renderer, tipPoints[2].x, tipPoints[2].y, tipPoints[1].x, tipPoints[1].y);
+	SDL_RenderLine(Renderer, tipPoints[0].x, tipPoints[0].y, tipPoints[1].x, tipPoints[1].y);
+	SDL_RenderLine(Renderer, tipPoints[2].x, tipPoints[2].y, tipPoints[1].x, tipPoints[1].y);
 
 	DrawCorner(arcPositions[0], CornerDiameter, false, false); // top left
 	DrawCorner(arcPositions[1], CornerDiameter, true, false); // top right
@@ -313,11 +289,14 @@ void BalloonWnd::RenderBalloonShape(Rect bounds)
 
 void BalloonWnd::PrepareText(string text, int posX, int posY, RGBQuad color)
 {
+	static std::wstring_convert<std::codecvt_utf8<wchar_t>> converter = {};
+
 	bool vertical = (int)TipQuad % 2 == 0;
 
-	TextSurface = TTF_RenderUNICODE_Solid_Wrapped(
+	TextSurface = TTF_RenderText_Blended_Wrapped(
 		Font,
-		(ushort*)text.c_str(),
+		converter.to_bytes(text).c_str(),
+		text.length(),
 		{
 			color.Red,
 			color.Green,
@@ -342,7 +321,7 @@ void BalloonWnd::FillTriangle(SDL_Point v1, SDL_Point v2, SDL_Point v3, RGBQuad 
 	for (int x = minX; x < maxX; x++)
 		for (int y = minY; y < maxY; y++)
 			if (IsPointInTriangle({ x, y }, v1, v2, v3)) 
-				SDL_RenderDrawPoint(Renderer, x, y);
+				SDL_RenderPoint(Renderer, x, y);
 }
 
 bool BalloonWnd::IsPointInTriangle(SDL_Point point, SDL_Point p1, SDL_Point p2, SDL_Point p3)
@@ -385,7 +364,7 @@ void BalloonWnd::DrawCorner(SDL_Point pos, int diameter, bool flipX, bool flipY)
 				color = BalloonStyle->BackgroundColor;
 
 			SDL_SetRenderDrawColor(Renderer, color.Red, color.Green, color.Blue, 255);
-			SDL_RenderDrawPoint(Renderer, x + startX, y + startY);
+			SDL_RenderPoint(Renderer, x + startX, y + startY);
 		}
 }
 

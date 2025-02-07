@@ -3,13 +3,10 @@
 
 #include "BitReader.h"
 
-//#include <Windows.h>
-
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_audio.h>
-#include <SDL_mixer.h>
-#include <SDL_syswm.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_audio.h>
+#include <SDL3_image/SDL_image.h>
+#include <SDL3_mixer/SDL_mixer.h>
 
 #include <functional>
 #include <fstream>
@@ -35,7 +32,7 @@ private:
 
 	std::map<ushort, LocalizedInfo> LocalizationInfo = {};
 
-	SDL_Palette CharacterPalette = {};
+	SDL_Palette* CharacterPalette = nullptr;
 
 	std::ifstream Stream;
 

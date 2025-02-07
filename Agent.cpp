@@ -31,56 +31,19 @@ void Agent::SetupWindow()
 {
 	LocalizedInfo* loc = AgFile->GetLocalizedInfo(0x416); // pt-BR
 
-	if (SDL_WasInit(SDL_INIT_EVERYTHING)) 
-	{
-		SDL_Init(SDL_INIT_EVERYTHING);
-		IMG_Init(SDL_INIT_EVERYTHING);
-		TTF_Init();
-	}
-
 	Window = SDL_CreateWindow(
 		"Agent",
-		SDL_WINDOWPOS_UNDEFINED, 
-		SDL_WINDOWPOS_UNDEFINED, 
 		AgFile->CharInfo.Width, 
 		AgFile->CharInfo.Height, 
 		SDL_WINDOW_ALWAYS_ON_TOP | 
-		SDL_WINDOW_BORDERLESS
+		SDL_WINDOW_BORDERLESS |
+		SDL_WINDOW_TRANSPARENT
 	);
 
 	Renderer = SDL_CreateRenderer(
 		Window,
-		-1,
-		SDL_RENDERER_PRESENTVSYNC | 
-		SDL_RENDERER_ACCELERATED
+		NULL
 	);
-
-	//// TODO: tonar isso multi plataforma
-	//SDL_SysWMinfo wmInfo;
-	//SDL_VERSION(&wmInfo.version);
-	//SDL_GetWindowWMInfo(Window, &wmInfo);
-	//HWND hwnd = wmInfo.info.win.window;
-
-	//SetWindowLong(
-	//	hwnd,
-	//	GWL_STYLE,
-	//	(GetWindowLong(hwnd, GWL_STYLE) | WS_POPUP) & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
-	//	);
-
-	//// Janela que não rouba o foco, com suporte para transparência e não sai da tela
-	//SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
-
-	//SetWindowLong(
-	//	hwnd,
-	//	GWL_EXSTYLE,
-	//	WS_EX_LAYERED |
-	//	WS_EX_NOACTIVATE
-	//);
-
-	//SetLayeredWindowAttributes(hwnd, 0x00FF00FF, 0xff, LWA_COLORKEY);
-
-	//SetWindowText(hwnd, loc->CharName.c_str());
-	//// ------------------------------
 
 	SDL_SetWindowIcon(Window, AgFile->AgentTrayIcon);
 
@@ -88,8 +51,14 @@ void Agent::SetupWindow()
 	{
 		AudioInitialized = true;
 
+		SDL_AudioSpec au = {};
+
+		au.freq = 11025;
+		au.format = SDL_AUDIO_U8;
+		au.channels = 1;
+
 		Mix_ChannelFinished(AudioFinishedCallback);
-		Mix_OpenAudio(11025, AUDIO_U8, 1, 64);
+		Mix_OpenAudio(0, &au);
 	}
 
 	Balloon.Setup(&AgFile->CharInfo.BalloonInfo);
@@ -99,8 +68,8 @@ void Agent::SetupWindow()
 
 void Agent::WndLoop()
 {
-	unsigned long long lastAnimUpdate = SDL_GetTicks64();
-	unsigned long long lastRedraw = SDL_GetTicks64();
+	unsigned long int lastAnimUpdate = SDL_GetTicks();
+	unsigned long int lastRedraw = SDL_GetTicks();
 
 	//TODO: remover isso
 	Balloon.Show();
@@ -112,9 +81,9 @@ void Agent::WndLoop()
 		SDL_PumpEvents();
 		while (SDL_PollEvent(&e)); // TODO: encerrar o agente e liberar o objeto.
 
-		if (SDL_GetTicks64() - lastAnimUpdate >= Interval * 10)
+		if (SDL_GetTicks() - lastAnimUpdate >= Interval * 10)
 		{
-			lastAnimUpdate = SDL_GetTicks64();
+			lastAnimUpdate = SDL_GetTicks();
 
 			UpdateAnim();
 			PrepareFrame(Frame);
@@ -123,10 +92,10 @@ void Agent::WndLoop()
 				PlayAudio(GetFrame(Frame)->AudioIndex);
 		}
 
-		if (SDL_GetTicks64() - lastRedraw < 1000 / 60)
+		if (SDL_GetTicks() - lastRedraw < 1000 / 60)
 			continue;
 
-		lastRedraw = SDL_GetTicks64();
+		lastRedraw = SDL_GetTicks();
 
 		Render();
 
@@ -227,10 +196,10 @@ void Agent::PrepareFrame(int index)
 	FrameInfo* fi = GetFrame(index);
 
 	for (auto& surface : FrameLayers)
-		SDL_FreeSurface(surface);
+		SDL_DestroySurface(surface);
 
 	for (auto& surface : FrameOverlays) 
-		SDL_FreeSurface(surface);
+		SDL_DestroySurface(surface);
 
 	FrameLayers.clear();
 	FrameOverlays.clear();
@@ -310,7 +279,7 @@ void Agent::Render()
 
 	FrameInfo* fi = &CurrentAnimation.Frames[Frame];
 
-	SDL_Rect targetRect;
+	SDL_FRect targetRect;
 
 	SDL_SetRenderDrawColor(Renderer, 255, 0, 255, 255);
 	SDL_RenderClear(Renderer);
@@ -324,11 +293,11 @@ void Agent::Render()
 		SDL_Surface* surImg = FrameLayers[i];
 		SDL_Texture* tex = SDL_CreateTextureFromSurface(Renderer, surImg);
 
-		targetRect = { fImg->OffsetX, fImg->OffsetY, surImg->w, surImg->h };
+		targetRect = { (float)fImg->OffsetX, (float)fImg->OffsetY, (float)surImg->w, (float)surImg->h };
 
 		textures.push_back(tex);
 
-		SDL_RenderCopyEx(
+		SDL_RenderTextureRotated(
 			Renderer, 
 			tex, 
 			NULL, 
@@ -384,8 +353,8 @@ void Agent::PlayAudio(uint index)
 
 	AudioInfo ai = AgFile->ReadAudio(index);
 
-	SDL_RWops* rw = SDL_RWFromMem(ai.Buffer, ai.Size);
-	Mix_Chunk* chunk = Mix_LoadWAV_RW(rw, 1);
+	SDL_IOStream* rw = SDL_IOFromMem(ai.Buffer, ai.Size);
+	Mix_Chunk* chunk = Mix_LoadWAV_IO(rw, 1);
 
 	ai.RW = rw;
 	ai.Chunk = chunk;

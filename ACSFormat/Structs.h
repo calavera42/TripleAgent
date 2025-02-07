@@ -1,7 +1,8 @@
 #pragma once
 #include "..\types.h"
-#include <SDL.h>
-#include <SDL_Mixer.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_audio.h>
+#include <SDL3_mixer/SDL_mixer.h>
 #include <vector>
 
 struct FrameImage;
@@ -54,7 +55,7 @@ struct AudioInfo {
 	void* Buffer;
 	uint Size;
 
-	SDL_RWops* RW;
+	SDL_IOStream* RW;
 	Mix_Chunk* Chunk;
 };
 

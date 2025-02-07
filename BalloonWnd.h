@@ -2,9 +2,10 @@
 
 #include "ACSFormat/Structs.h"
 
-#include <SDL.h>
-#include <SDL_syswm.h>
+#include <SDL3/SDL.h>
 #include <SDL_ttf.h>
+#include <locale>
+#include <codecvt>
 
 enum class TipQuadrant {
 	Top,
