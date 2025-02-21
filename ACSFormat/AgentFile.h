@@ -6,7 +6,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_audio.h>
 #include <SDL3_image/SDL_image.h>
-#include <SDL3_mixer/SDL_mixer.h>
 
 #include <functional>
 #include <fstream>
@@ -33,6 +32,7 @@ private:
 	std::map<ushort, LocalizedInfo> LocalizationInfo = {};
 
 	SDL_Palette* CharacterPalette = nullptr;
+	RGBQuad ColorKey = {};
 
 	std::ifstream Stream;
 

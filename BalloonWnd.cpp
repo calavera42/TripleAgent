@@ -293,10 +293,14 @@ void BalloonWnd::PrepareText(string text, int posX, int posY, RGBQuad color)
 
 	bool vertical = (int)TipQuad % 2 == 0;
 
+	std::string utf8Str = converter.to_bytes(text);
+
+	printf("%s\n", utf8Str.c_str());
+
 	TextSurface = TTF_RenderText_Blended_Wrapped(
 		Font,
-		converter.to_bytes(text).c_str(),
-		text.length(),
+		utf8Str.c_str(),
+		utf8Str.size(),
 		{
 			color.Red,
 			color.Green,
@@ -305,6 +309,8 @@ void BalloonWnd::PrepareText(string text, int posX, int posY, RGBQuad color)
 		},
 		BalloonStyle->CharsPerLine * 10
 	);
+
+	printf("%s", SDL_GetError());
 
 	TextTexture = SDL_CreateTextureFromSurface(Renderer, TextSurface);
 }

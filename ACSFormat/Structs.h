@@ -2,7 +2,6 @@
 #include "..\types.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_audio.h>
-#include <SDL3_mixer/SDL_mixer.h>
 #include <vector>
 
 struct FrameImage;
@@ -54,9 +53,6 @@ enum class CharacterFlags : uint {
 struct AudioInfo {
 	void* Buffer;
 	uint Size;
-
-	SDL_IOStream* RW;
-	Mix_Chunk* Chunk;
 };
 
 #pragma pack(push, 1)
@@ -162,7 +158,7 @@ struct OverlayInfo {
 	DataBlock RegionData {};
 };
 
-struct in_GUID {
+struct GUID {
 	unsigned long Data1 {};
 	unsigned short Data2 {};
 	unsigned short Data3 {};
@@ -205,8 +201,8 @@ struct ExtraVoiceInfo {
 };
 
 struct VoiceInfo {
-	in_GUID TTSEngineId {}; // guid
-	in_GUID TTSModeId {}; // guid
+	GUID TTSEngineId {}; // guid
+	GUID TTSModeId {}; // guid
 	uint Speed {};
 	ushort Pitch {};
 	bool ExtraData {};
@@ -234,7 +230,7 @@ struct CharacterInfo {
 	ushort MinorVersion {};
 	ushort MajorVersion {};
 	ACSLocator LocalizedInfo {};
-	in_GUID CharId {};
+	GUID CharId {};
 	ushort Width {};
 	ushort Height {};
 	byte TransparentColorIndex {};
@@ -244,7 +240,6 @@ struct CharacterInfo {
 	VoiceInfo VoiceInfo {};
 	ExtraVoiceInfo AdditionalVoiceInfo {};
 	BalloonInfo BalloonInfo {};
-	std::vector<RGBQuad> Palette {};
 	bool TrayIconEnabled {};
 	TrayIcon SystemTrayIcon {};
 	ushort AnimationStatesCount {};

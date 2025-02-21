@@ -25,8 +25,6 @@ void Agent::DoStuff()
 	AgentThread.detach();
 }
 
-bool Agent::AudioInitialized = false;
-
 void Agent::SetupWindow()
 {
 	LocalizedInfo* loc = AgFile->GetLocalizedInfo(0x416); // pt-BR
@@ -35,7 +33,7 @@ void Agent::SetupWindow()
 		"Agent",
 		AgFile->CharInfo.Width, 
 		AgFile->CharInfo.Height, 
-		SDL_WINDOW_ALWAYS_ON_TOP | 
+		SDL_WINDOW_ALWAYS_ON_TOP |
 		SDL_WINDOW_BORDERLESS |
 		SDL_WINDOW_TRANSPARENT
 	);
@@ -47,23 +45,21 @@ void Agent::SetupWindow()
 
 	SDL_SetWindowIcon(Window, AgFile->AgentTrayIcon);
 
-	if (!AudioInitialized) 
-	{
-		AudioInitialized = true;
-
-		SDL_AudioSpec au = {};
-
-		au.freq = 11025;
-		au.format = SDL_AUDIO_U8;
-		au.channels = 1;
-
-		Mix_ChannelFinished(AudioFinishedCallback);
-		Mix_OpenAudio(0, &au);
-	}
-
 	Balloon.Setup(&AgFile->CharInfo.BalloonInfo);
 
 	SDL_SetWindowHitTest(Window, HitTestCallback, nullptr);
+
+	SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
+
+	SDL_AudioSpec spec;
+
+	SDL_zero(spec);
+
+	spec.freq = 11025;
+	spec.format = SDL_AUDIO_S16;
+	spec.channels = 1;
+
+	AudioDevice = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
 }
 
 void Agent::WndLoop()
@@ -72,8 +68,8 @@ void Agent::WndLoop()
 	unsigned long int lastRedraw = SDL_GetTicks();
 
 	//TODO: remover isso
-	Balloon.Show();
-	Balloon.UpdateText(L"Ainda, que eu falasse a língua dos homens, ou falasse a língua dos anjos, sem amor nada eu seria.");
+	//Balloon.Show();
+	//Balloon.UpdateText(L"Ainda, que eu falasse a língua dos homens, ou falasse a língua dos anjos, sem amor nada eu seria.");
 
 	SDL_Event e;
 	while (true) 
@@ -98,6 +94,9 @@ void Agent::WndLoop()
 		lastRedraw = SDL_GetTicks();
 
 		Render();
+
+		if (!Balloon.Shown)
+			continue;
 
 		Balloon.AttachToWindow(Window);
 		Balloon.Render();
@@ -142,7 +141,7 @@ void Agent::UpdateAnim()
 			LastFrame = Frame;
 			Frame = currentFrame->ExitFrameIndex;
 
-			if (Frame > 0)
+			if (Frame >= 0)
 				break;
 
 			if (Frame == -1) 
@@ -168,7 +167,7 @@ void Agent::UpdateAnim()
 	}
 }
 
-void Agent::AdvanceFrame(std::vector<BranchInfo> branches)
+void Agent::AdvanceFrame(std::vector<BranchInfo>& branches)
 {
 	if (StopRequested)
 		return;
@@ -268,7 +267,7 @@ bool Agent::CanSpeakOnFrame(uint frame)
 void Agent::ThreadMain()
 {
 	SetupWindow();
-	LoadAnimation(L"Idle2_1");
+	LoadAnimation(L"reading");
 
 	WndLoop();
 }
@@ -276,12 +275,10 @@ void Agent::ThreadMain()
 void Agent::Render()
 {
 	// TODO: renderizar overlays
-
 	FrameInfo* fi = &CurrentAnimation.Frames[Frame];
 
 	SDL_FRect targetRect;
 
-	SDL_SetRenderDrawColor(Renderer, 255, 0, 255, 255);
 	SDL_RenderClear(Renderer);
 
 	std::vector<SDL_Texture*> textures = {};
@@ -341,53 +338,7 @@ SDL_HitTestResult Agent::HitTestCallback(SDL_Window* win, const SDL_Point* area,
 	return SDL_HITTEST_DRAGGABLE;
 }
 
-std::map<uint, AudioInfo> Agent::AudioData = {};
-byte Agent::UsedChannels = 0;
-
 void Agent::PlayAudio(uint index)
 {
-	int availableChannels = Mix_AllocateChannels(-1);
-
-	if (UsedChannels >= availableChannels)
-		return;
-
-	AudioInfo ai = AgFile->ReadAudio(index);
-
-	SDL_IOStream* rw = SDL_IOFromMem(ai.Buffer, ai.Size);
-	Mix_Chunk* chunk = Mix_LoadWAV_IO(rw, 1);
-
-	ai.RW = rw;
-	ai.Chunk = chunk;
-
-	int channel = Mix_PlayChannel(-1, chunk, 0);
-	AudioData.insert({ channel, ai });
-
-	UsedChannels++;
-}
-
-void Agent::AudioFinishedCallback(int channel)
-{
-	AudioInfo* chanAi = &AudioData[channel];
-
-	/*
-	* "Only use SDL_FreeRW() on pointers returned by SDL_AllocRW(). The pointer is invalid as 
-	* soon as this function returns. Any extra memory allocated during creation of the SDL_RWops 
-	* is not freed by SDL_FreeRW(); the programmer must be responsible for managing that memory in 
-	* their close method."
-	* 
-	* eis aí o motivo do antigo crash.
-	* 
-	* ou pode ser o freesrc na criação do mixchunk
-	* 
-	* foda-se, funciona agora e não vaza memória
-	* big hugs
-	*/
-	//SDL_FreeRW(chanAi->RW);
-
-	Mix_FreeChunk(chanAi->Chunk);
-
-	free(chanAi->Buffer);
-
-	AudioData.erase(channel);
-	UsedChannels--;
+	SDL_Log("FIXME: sistema de áudio não funcionando.");
 }

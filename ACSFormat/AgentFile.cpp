@@ -122,9 +122,11 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 
 	std::vector<RGBQuad> colors = ReadVector<uint, RGBQuad>(Stream, NULL);
 
-	CharacterPalette = SDL_CreatePalette(CharInfo.Palette.size());
+	CharacterPalette = SDL_CreatePalette(colors.size());
 
-	for (int i = 0; i < CharInfo.Palette.size(); i++)
+	ColorKey = colors[CharInfo.TransparentColorIndex];
+
+	for (int i = 0; i < colors.size(); i++)
 	{
 		RGBQuad rgb = colors[i];
 
@@ -220,6 +222,7 @@ LocalizedInfo* AgentFile::GetLocalizedInfo(ushort langId)
 	return &LocalizationInfo[langId];
 }
 
+// FIXME: no port pro SDL3 deixou de funcionar
 SDL_Surface* AgentFile::ReadTrayIcon()
 {
 	TrayIcon output = {};
@@ -445,8 +448,7 @@ SDL_Surface* AgentFile::ReadImage(uint index)
 
 	SDL_SetSurfacePalette(surface, CharacterPalette);
 
-	RGBQuad colorKey = CharInfo.Palette[CharInfo.TransparentColorIndex];
-	SDL_SetSurfaceColorKey(surface, true, SDL_MapSurfaceRGB(surface, colorKey.Red, colorKey.Green, colorKey.Blue));
+	SDL_SetSurfaceColorKey(surface, true, SDL_MapSurfaceRGB(surface, ColorKey.Red, ColorKey.Green, ColorKey.Blue));
 
 	return surface;
 }

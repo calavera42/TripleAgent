@@ -2,7 +2,9 @@
 
 #include "ACSFormat/AgentFile.h"
 #include "BalloonWnd.h"
+#include "GlobalErrorHandler.h"
 
+#include <SDL3/SDL_audio.h>
 #include <thread>
 #include <chrono>
 #include <queue>
@@ -78,17 +80,9 @@ private:
 	// ------------
 
 	// Audio
-	/*
-	 * Essa implementação do sistema de audio permite que mais de uma
-	 * instância da classe Agent possa ser feita sem eventuais problemas.
-	 */
-	static bool AudioInitialized;
-
-	static std::map<uint, AudioInfo> AudioData;
-	static byte UsedChannels;
+	SDL_AudioDeviceID AudioDevice;
 
 	void PlayAudio(uint index);
-	static void AudioFinishedCallback(int channel);
 	// ------------
 
 	// Fala 
@@ -114,7 +108,7 @@ private:
 
 	void UpdateAnim();
 
-	void AdvanceFrame(std::vector<BranchInfo> branches);
+	void AdvanceFrame(std::vector<BranchInfo>& branches);
 	void PrepareFrame(int index);
 
 	void LoadAnimationFromState(AgentState state);

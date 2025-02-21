@@ -62,6 +62,8 @@ private:
 public:
 	BalloonWnd() = default;
 
+	bool Shown = false;
+
 	TipQuadrant TipQuad = TipQuadrant::Left;
 
 	int Setup(BalloonInfo* bi);
