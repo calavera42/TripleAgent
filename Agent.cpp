@@ -18,12 +18,26 @@ Agent::Agent(AgentFile* agf)
 
 void Agent::DoStuff()
 {
+	/*
+					--= IMPORTANTÍSSIMO, NÃO APAGAR =--
+
+		É importante que o agente seja inicializado num estado seguro.
+
+			Caso o servidor não encontre a animação que o usuário solicitou, 
+		não há uma maneira segura de escolher um substituto. Assumindo que
+		no mínimo o agente tenha uma animação de entrada, caso o servidor
+		não encontre a IdlePose, podemos assumir que o último frame da
+		animação de entrada é a IdlePose.
+	*/
+
 	ThreadMain();
 	return;
 
 	AgentThread = std::thread(&Agent::ThreadMain, this);
 	AgentThread.detach();
 }
+
+bool Agent::AudioInitialized;
 
 void Agent::SetupWindow()
 {
@@ -45,21 +59,25 @@ void Agent::SetupWindow()
 
 	SDL_SetWindowIcon(Window, AgFile->AgentTrayIcon);
 
+	if (!AudioInitialized)
+	{
+		AudioInitialized = true;
+
+		SDL_AudioSpec spec;
+
+		spec.freq = 11025;
+		spec.format = SDL_AudioFormat::SDL_AUDIO_U8;
+		spec.channels = 1;
+
+		Mix_ChannelFinished(AudioFinishedCallback);
+		Mix_OpenAudio(0, &spec);
+	}
+
 	Balloon.Setup(&AgFile->CharInfo.BalloonInfo);
 
 	SDL_SetWindowHitTest(Window, HitTestCallback, nullptr);
 
 	SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
-
-	SDL_AudioSpec spec;
-
-	SDL_zero(spec);
-
-	spec.freq = 11025;
-	spec.format = SDL_AUDIO_S16;
-	spec.channels = 1;
-
-	AudioDevice = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
 }
 
 void Agent::WndLoop()
@@ -68,8 +86,8 @@ void Agent::WndLoop()
 	unsigned long int lastRedraw = SDL_GetTicks();
 
 	//TODO: remover isso
-	//Balloon.Show();
-	//Balloon.UpdateText(L"Ainda, que eu falasse a língua dos homens, ou falasse a língua dos anjos, sem amor nada eu seria.");
+	Balloon.Show();
+	Balloon.UpdateText(L"Se eu perder esse trem, que sai agora às onze horas, só amanhã de manhã.");
 
 	SDL_Event e;
 	while (true) 
@@ -267,7 +285,7 @@ bool Agent::CanSpeakOnFrame(uint frame)
 void Agent::ThreadMain()
 {
 	SetupWindow();
-	LoadAnimation(L"reading");
+	LoadAnimation(L"searching");
 
 	WndLoop();
 }
@@ -338,7 +356,53 @@ SDL_HitTestResult Agent::HitTestCallback(SDL_Window* win, const SDL_Point* area,
 	return SDL_HITTEST_DRAGGABLE;
 }
 
+std::map<uint, AudioInfo> Agent::AudioData = {};
+byte Agent::UsedChannels = 0;
+
 void Agent::PlayAudio(uint index)
 {
-	SDL_Log("FIXME: sistema de áudio não funcionando.");
+	int availableChannels = Mix_AllocateChannels(-1);
+
+	if (UsedChannels >= availableChannels)
+		return;
+
+	AudioInfo ai = AgFile->ReadAudio(index);
+
+	SDL_IOStream* rw = SDL_IOFromMem(ai.Buffer, ai.Size);
+	Mix_Chunk* chunk = Mix_LoadWAV_IO(rw, 1);
+
+	ai.RW = rw;
+	ai.Chunk = chunk;
+
+	int channel = Mix_PlayChannel(-1, chunk, 0);
+	AudioData.insert({ channel, ai });
+
+	UsedChannels++;
+}
+
+void Agent::AudioFinishedCallback(int channel)
+{
+	AudioInfo* chanAi = &AudioData[channel];
+
+	/*
+	* "Only use SDL_FreeRW() on pointers returned by SDL_AllocRW(). The pointer is invalid as
+	* soon as this function returns. Any extra memory allocated during creation of the SDL_RWops
+	* is not freed by SDL_FreeRW(); the programmer must be responsible for managing that memory in
+	* their close method."
+	*
+	* eis aí o motivo do antigo crash.
+	*
+	* ou pode ser o freesrc na criação do mixchunk
+	*
+	* foda-se, funciona agora e não vaza memória
+	* big hugs
+	*/
+	//SDL_FreeRW(chanAi->RW);
+
+	Mix_FreeChunk((Mix_Chunk*)chanAi->Chunk);
+
+	free(chanAi->Buffer);
+
+	AudioData.erase(channel);
+	UsedChannels--;
 }

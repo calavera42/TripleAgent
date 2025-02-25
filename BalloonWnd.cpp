@@ -6,10 +6,10 @@ int BalloonWnd::Setup(BalloonInfo* bi)
 		"bloon",
 		30,
 		30,
-		SDL_WINDOW_BORDERLESS | 
 		SDL_WINDOW_ALWAYS_ON_TOP |
-		SDL_WINDOW_HIDDEN |
-		SDL_WINDOW_TRANSPARENT
+		SDL_WINDOW_BORDERLESS |
+		SDL_WINDOW_TRANSPARENT |
+		SDL_WINDOW_HIDDEN
 	);
 
 	if (Window == nullptr)
@@ -39,7 +39,7 @@ int BalloonWnd::Setup(BalloonInfo* bi)
 	return 0;
 }
 
-void BalloonWnd::AttachToWindow(SDL_Window * agentWindow)
+void BalloonWnd::AttachToWindow(SDL_Window* agentWindow)
 {
 	if (!Created)
 		return;
@@ -90,13 +90,13 @@ void BalloonWnd::AttachToWindow(SDL_Window * agentWindow)
 		break;
 	case WindowQuadrant::BottomLeft:
 		TipQuad = TipQuadrant::Bottom;
-		TipOffsetInLine = agRect.w / 2 - CornerDiameter;
+		TipOffsetInLine = agRect.w / 2 - CornerDiameter - TipMiddle;
 
 		SDL_SetWindowPosition(Window, agRect.x, agRect.y - baRect.h);
 		break;
 	case WindowQuadrant::BottomRight:
 		TipQuad = TipQuadrant::Bottom;
-		TipOffsetInLine = baRect.w - CornerDiameter - TipSpacing - agRect.w / 2;
+		TipOffsetInLine = baRect.w - CornerDiameter - TipMiddle - agRect.w / 2;
 
 		SDL_SetWindowPosition(Window, agRect.x - baRect.w + agRect.w, agRect.y - baRect.h);
 		break;
@@ -122,6 +122,7 @@ void BalloonWnd::Show()
 		return;
 
 	SDL_ShowWindow(Window);
+	Shown = true;
 }
 
 void BalloonWnd::Hide()
@@ -130,6 +131,7 @@ void BalloonWnd::Hide()
 		return;
 
 	SDL_HideWindow(Window);
+	Shown = false;
 }
 
 void BalloonWnd::Render()
@@ -137,7 +139,7 @@ void BalloonWnd::Render()
 	if (!Created)
 		return;
 
-	SDL_SetRenderDrawColor(Renderer, 255, 0, 255, 255);
+	SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 0);
 	SDL_RenderClear(Renderer);
 
 	Rect bounds = GetBounds();
@@ -281,6 +283,8 @@ void BalloonWnd::RenderBalloonShape(Rect bounds)
 	SDL_RenderLine(Renderer, tipPoints[0].x, tipPoints[0].y, tipPoints[1].x, tipPoints[1].y);
 	SDL_RenderLine(Renderer, tipPoints[2].x, tipPoints[2].y, tipPoints[1].x, tipPoints[1].y);
 
+	//SDL_RenderPoint(Renderer, tipPoints[1].x, tipPoints[1].y);
+
 	DrawCorner(arcPositions[0], CornerDiameter, false, false); // top left
 	DrawCorner(arcPositions[1], CornerDiameter, true, false); // top right
 	DrawCorner(arcPositions[2], CornerDiameter, true, true); // bottom right
@@ -295,8 +299,6 @@ void BalloonWnd::PrepareText(string text, int posX, int posY, RGBQuad color)
 
 	std::string utf8Str = converter.to_bytes(text);
 
-	printf("%s\n", utf8Str.c_str());
-
 	TextSurface = TTF_RenderText_Blended_Wrapped(
 		Font,
 		utf8Str.c_str(),
@@ -309,8 +311,6 @@ void BalloonWnd::PrepareText(string text, int posX, int posY, RGBQuad color)
 		},
 		BalloonStyle->CharsPerLine * 10
 	);
-
-	printf("%s", SDL_GetError());
 
 	TextTexture = SDL_CreateTextureFromSurface(Renderer, TextSurface);
 }
@@ -363,6 +363,13 @@ void BalloonWnd::DrawCorner(SDL_Point pos, int diameter, bool flipX, bool flipY)
 		{
 			int distance = Distance(x, y, diameter - xDec, diameter - yDec);
 			RGBQuad color = { 255, 0, 255 };
+
+			if (distance > diameter)
+			{
+				SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 0);
+				SDL_RenderPoint(Renderer, x + startX, y + startY);
+				continue;
+			}
 
 			if (distance == diameter)
 				color = BalloonStyle->BorderColor;

@@ -5,6 +5,7 @@
 #include "GlobalErrorHandler.h"
 
 #include <SDL3/SDL_audio.h>
+#include <SDL3_mixer/SDL_mixer.h>
 #include <thread>
 #include <chrono>
 #include <queue>
@@ -80,9 +81,13 @@ private:
 	// ------------
 
 	// Audio
-	SDL_AudioDeviceID AudioDevice;
+	static bool AudioInitialized;
+
+	static std::map<uint, AudioInfo> AudioData;
+	static byte UsedChannels;
 
 	void PlayAudio(uint index);
+	static void AudioFinishedCallback(int channel);
 	// ------------
 
 	// Fala 

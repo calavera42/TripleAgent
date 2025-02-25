@@ -303,7 +303,7 @@ SDL_Surface* AgentFile::RasterizeIconImage(IconImage& im)
 
 		(SDL_PixelFormat)SDL_DEFINE_PIXELFORMAT(
 			lookup[im.IconHeader.BitsPerPixel],
-			SDL_BITMAPORDER_4321,
+			SDL_BITMAPORDER_1234,
 			0,
 			im.IconHeader.BitsPerPixel,
 			0
@@ -349,6 +349,9 @@ void AgentFile::ReadAnimationInfo(ACSLocator* pos)
 AnimationInfo AgentFile::ReadAnimation(string name)
 {
 	NormalizeString(name);
+
+	if (Animations.count(name) == 0)
+		return {};
 
 	AnimationPointer* pointer = &Animations[name];
 	ACSLocator* pos = &pointer->InfoLocation;

@@ -53,6 +53,9 @@ enum class CharacterFlags : uint {
 struct AudioInfo {
 	void* Buffer;
 	uint Size;
+
+	void* RW;
+	void* Chunk;
 };
 
 #pragma pack(push, 1)
