@@ -146,6 +146,8 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 		temp.StateName = ReadString(str);
 		temp.Animations = ReadVector<ushort, string>(str, ReadString);
 
+		NormalizeString(temp.StateName);
+
 		return temp;
 	});
 

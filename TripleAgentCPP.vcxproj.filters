@@ -30,7 +30,10 @@
     <ClCompile Include="BalloonWnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GlobalErrorHandler.cpp">
+    <ClCompile Include="AgentServices\Window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AnimationProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -51,7 +54,10 @@
     <ClInclude Include="BalloonWnd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GlobalErrorHandler.h">
+    <ClInclude Include="AgentServices\Window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationProvider.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

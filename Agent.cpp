@@ -14,6 +14,8 @@ Agent::Agent(AgentFile* agf)
 	LastFrame = 0;
 	Shown = true;
 	StopRequested = false;
+
+	srand(1);
 }
 
 void Agent::DoStuff()
@@ -32,7 +34,7 @@ void Agent::DoStuff()
 
 	ThreadMain();
 	return;
-
+	
 	AgentThread = std::thread(&Agent::ThreadMain, this);
 	AgentThread.detach();
 }
@@ -43,12 +45,16 @@ void Agent::SetupWindow()
 {
 	LocalizedInfo* loc = AgFile->GetLocalizedInfo(0x416); // pt-BR
 
+	static std::wstring_convert<std::codecvt_utf8<wchar_t>> converter = {};
+	std::string agentName = converter.to_bytes(loc->CharName);
+
 	Window = SDL_CreateWindow(
-		"Agent",
+		agentName.c_str(),
 		AgFile->CharInfo.Width, 
 		AgFile->CharInfo.Height, 
 		SDL_WINDOW_ALWAYS_ON_TOP |
 		SDL_WINDOW_BORDERLESS |
+		/*SDL_WINDOW_NOT_FOCUSABLE |*/
 		SDL_WINDOW_TRANSPARENT
 	);
 
@@ -121,66 +127,83 @@ void Agent::WndLoop()
 	}
 }
 
+// TODO: fazer com que vários frames nulos consecutivos sejam pulados juntos e não alterem o LastFrame
 void Agent::UpdateAnim()
 {
 	FrameInfo* currentFrame = GetFrame(Frame);
 
-	switch (AnimState) 
-	{
+	switch (AnimState) {
 	case AnimationState::Progressing:
-		LastFrame = Frame;
-
+	{
 		AdvanceFrame(currentFrame->Branches);
-		Interval = currentFrame->FrameDuration;
+		currentFrame = GetFrame(Frame);
 
-		if (Frame == CurrentAnimation.Frames.size() - 1 || Frame < 0)
-			AnimState = AnimationState::Finished;
+		Interval = GetFrame(Frame)->FrameDuration;
 
-		if (GetFrame(Frame)->FrameDuration == 0) 
-			UpdateAnim();
-		break;
-	case AnimationState::Finished:
-		Frame = LastFrame;
+		bool isLastFrame = Frame == CurrentAnimation.Frames.size() - 1;
+		bool isBranchingFrame = currentFrame->FrameDuration == 0;
 
-		AnimState = AnimationState::IdlePose;
-
-		if (CanSpeakOnFrame(LastFrame)) {
-			AnimState = AnimationState::SpeakReady;
-			break;
-		}
-
-		if (CurrentState > AgentState::IdlingLevel3 && CurrentState < AgentState::Speaking)
-			AnimState = AnimationState::MoveReady;
-		break;
-	case AnimationState::Returning:
-		switch (CurrentAnimation.Transition)
+		if (isLastFrame)
 		{
-		case TransitionType::ExitBranches:
-			LastFrame = Frame;
-			Frame = currentFrame->ExitFrameIndex;
-
-			if (Frame >= 0)
-				break;
-
-			if (Frame == -1) 
+			if (isBranchingFrame)
 			{
-				Frame++;
-				break;
+				AdvanceFrame(currentFrame->Branches);
+
+				if (Frame < CurrentAnimation.Frames.size() - 1) 
+				{
+					Interval = GetFrame(Frame)->FrameDuration;
+					LastFrame = Frame;
+					break;
+				}
+
+				Frame = LastFrame;
 			}
 
-			// frame == -2
+			AnimationEndLogic();
+		}
+		else
+			if (isBranchingFrame)
+				AdvanceFrame(currentFrame->Branches);
+		LastFrame = Frame;
+	}
+		break;
+	case AnimationState::Returning:
+		int exitFrame = currentFrame->ExitFrameIndex;
 
-			Frame = LastFrame;
-
-			AnimState = AnimationState::IdlePose;
-			break;
-		case TransitionType::ReturnAnimation:
-			LoadAnimation(CurrentAnimation.ReturnAnimation);
-			break;
-		case TransitionType::None:
-			AnimState = AnimationState::IdlePose;
+		if (exitFrame == -2 
+			|| exitFrame == 0 
+			|| (Frame >= CurrentAnimation.Frames.size() - 1 && exitFrame == -1)
+			)
+		{
+			AnimState = AnimationState::Finished;
+			AnimationEndLogic();
 			break;
 		}
+
+		if (exitFrame == -1)
+			exitFrame = Frame + 1;
+
+		Frame = exitFrame;
+		Interval = GetFrame(Frame)->FrameDuration;
+		break;
+	}
+}
+
+void Agent::AnimationEndLogic()
+{
+	wprintf(L"%ws\t", CurrentAnimation.AnimationName.c_str());
+	switch (AnimState)
+	{
+	case AnimationState::Progressing:
+		// TODO: falar / mover
+		AnimState = AnimationState::Returning;
+		wprintf(L"Fim da animação, retornando...\n");
+		if (CanSpeakOnFrame(Frame))
+			wprintf(L"\tum maravilhoso sucesso!\n");
+		break;
+	case AnimationState::Finished:
+		LoadAnimationFromState(AgentState::IdlingLevel3);
+		wprintf(L"Animação encerrada. Reiniciando.\n");
 		break;
 	}
 }
@@ -190,13 +213,13 @@ void Agent::AdvanceFrame(std::vector<BranchInfo>& branches)
 	if (StopRequested)
 		return;
 
-	int rnd = rand() % 101;
+	int rnd = rand() % 100 + 1;
 	int prob = 0;
 
 	for (auto& brInfo : branches) {
 		prob += brInfo.Probability;
 
-		if (rnd <= prob) {
+		if (rnd < prob) {
 			Frame = brInfo.TargetFrame;
 			return;
 		}
@@ -207,25 +230,59 @@ void Agent::AdvanceFrame(std::vector<BranchInfo>& branches)
 
 void Agent::PrepareFrame(int index)
 {
-	if (AnimState == AnimationState::Finished)
+	if (AnimState == AnimationState::Paused)
 		return;
 
 	FrameInfo* fi = GetFrame(index);
 
-	for (auto& surface : FrameLayers)
+	SDL_DestroyTexture(AgentTex);
+
+	AgentSur = SDL_CreateSurface(AgFile->CharInfo.Width, AgFile->CharInfo.Height, SDL_PIXELFORMAT_RGBA8888);
+	SDL_Renderer* renderer = SDL_CreateSoftwareRenderer(AgentSur);
+
+	// TODO: renderizar overlays
+	SDL_FRect targetRect;
+
+	SDL_RenderClear(renderer);
+
+	std::vector<SDL_Texture*> textures = {};
+	std::vector<SDL_Surface*> surfaces = {};
+
+	for (int i = (int)fi->Images.size() - 1; i >= 0; i--)
+	{
+		FrameImage* fImg = &fi->Images[i];
+
+		SDL_Surface* surImg = AgFile->ReadImage(fImg->FrameIndex);
+		SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surImg);
+
+		targetRect = { (float)fImg->OffsetX, (float)fImg->OffsetY, (float)surImg->w, (float)surImg->h };
+
+		textures.push_back(tex);
+		surfaces.push_back(surImg);
+
+		SDL_RenderTextureRotated(
+			renderer,
+			tex,
+			NULL,
+			&targetRect,
+			0,
+			nullptr,
+			SDL_FLIP_VERTICAL
+		);
+	}
+
+	for (auto& texture : textures)
+		SDL_DestroyTexture(texture);
+
+	for (auto& surface : surfaces)
 		SDL_DestroySurface(surface);
 
-	for (auto& surface : FrameOverlays) 
-		SDL_DestroySurface(surface);
+	SDL_SetWindowShape(Window, AgentSur);
 
-	FrameLayers.clear();
-	FrameOverlays.clear();
+	AgentTex = SDL_CreateTextureFromSurface(Renderer, AgentSur);
 
-	for (auto& imageInfo : fi->Images)
-		FrameLayers.push_back(AgFile->ReadImage(imageInfo.FrameIndex));
-
-	for (auto& overlayInfo : fi->Overlays)
-		FrameOverlays.push_back(AgFile->ReadImage(overlayInfo.ImageIndex));
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroySurface(AgentSur);
 }
 
 void Agent::LoadAnimation(string name)
@@ -236,8 +293,9 @@ void Agent::LoadAnimation(string name)
 
 	Interval = 0;
 
-	AnimPaused = 0;
-	StopRequested = 0;
+	AnimPaused = false;
+	StopRequested = false;
+	AnimState = AnimationState::Progressing;
 }
 
 void Agent::LoadAnimationFromState(AgentState state)
@@ -267,7 +325,7 @@ void Agent::LoadAnimationFromState(AgentState state)
 	if (stateInfo == nullptr)
 		return;
 
-	string animName = stateInfo->Animations[stateInfo->Animations.size()];
+	string animName = stateInfo->Animations[rand() % (stateInfo->Animations.size() - 1)];
 
 	LoadAnimation(animName);
 }
@@ -285,58 +343,21 @@ bool Agent::CanSpeakOnFrame(uint frame)
 void Agent::ThreadMain()
 {
 	SetupWindow();
-	LoadAnimation(L"searching");
+	LoadAnimation(L"show");
 
 	WndLoop();
 }
 
 void Agent::Render()
 {
-	// TODO: renderizar overlays
-	FrameInfo* fi = &CurrentAnimation.Frames[Frame];
-
-	SDL_FRect targetRect;
-
 	SDL_RenderClear(Renderer);
-
-	std::vector<SDL_Texture*> textures = {};
-
-	for (int i = (int)fi->Images.size() - 1; i >= 0; i--)
-	{
-		FrameImage* fImg = &fi->Images[i];
-
-		SDL_Surface* surImg = FrameLayers[i];
-		SDL_Texture* tex = SDL_CreateTextureFromSurface(Renderer, surImg);
-
-		targetRect = { (float)fImg->OffsetX, (float)fImg->OffsetY, (float)surImg->w, (float)surImg->h };
-
-		textures.push_back(tex);
-
-		SDL_RenderTextureRotated(
-			Renderer, 
-			tex, 
-			NULL, 
-			&targetRect, 
-			0, 
-			nullptr, 
-			SDL_FLIP_VERTICAL
-		);
-	}
-
-	for (auto& texture : textures)
-		SDL_DestroyTexture(texture);
-
+	SDL_RenderTexture(Renderer, AgentTex, nullptr, nullptr);
 	SDL_RenderPresent(Renderer);
 }
 
 void Agent::Queue(Request req)
 {
 	RequestQueue.push(req);
-}
-
-void Agent::AnimationEndLogic()
-{
-	
 }
 
 void Agent::ShowWindow()

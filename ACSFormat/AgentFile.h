@@ -47,7 +47,7 @@ private:
 	template <typename Type>
 	static Type ReadSimple(std::ifstream& str);
 
-	void NormalizeString(string& s);
+	static void NormalizeString(string& s);
 
 	void ReadCharInfo(ACSLocator* pos);
 	void ReadVoiceInfo();

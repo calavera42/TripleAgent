@@ -38,7 +38,7 @@ private:
 	SDL_Texture* TextTexture = nullptr;
 
 	const int CornerDiameter = 12;
-	const int TipDepth = 16;
+	const int TipDepth = 15;
 	const int TipSpacing = 10;
 	const int TipMiddle = TipSpacing / 2;
 
@@ -48,15 +48,15 @@ private:
 
 	Rect GetBounds();
 
-	void RenderBalloonShape(Rect bounds);
+	void RenderBalloonShape(Rect bounds, SDL_Renderer* renderer);
 
 	void PrepareText(string text, int posX, int posY, RGBQuad color);
 
-	void FillTriangle(SDL_Point v1, SDL_Point v2, SDL_Point v3, RGBQuad color);
+	void FillTriangle(SDL_Point v1, SDL_Point v2, SDL_Point v3, RGBQuad color, SDL_Renderer* renderer);
 	bool IsPointInTriangle(SDL_Point point, SDL_Point p1, SDL_Point p2, SDL_Point p3);
 	float Sign(SDL_Point p1, SDL_Point p2, SDL_Point p3);
 
-	void DrawCorner(SDL_Point pos, int diameter, bool flipX = false, bool flipY = false);
+	void DrawCorner(SDL_Point pos, int diameter, SDL_Renderer* renderer, bool flipX = false, bool flipY = false);
 	int Distance(int x, int y, int x1, int y1);
 
 public:

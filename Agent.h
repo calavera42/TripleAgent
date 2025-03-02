@@ -4,11 +4,13 @@
 #include "BalloonWnd.h"
 #include "GlobalErrorHandler.h"
 
-#include <SDL3/SDL_audio.h>
 #include <SDL3_mixer/SDL_mixer.h>
-#include <thread>
+#include <SDL3/SDL_thread.h>
+
 #include <chrono>
 #include <queue>
+#include <assert.h>
+#include <thread>
 
 enum class AgentState
 {
@@ -34,13 +36,8 @@ enum class AgentState
 enum class AnimationState {
 	Paused,
 	Progressing,
-	Finished,
 	Returning,
-
-	SpeakReady,
-	MoveReady,
-
-	IdlePose
+	Finished
 };
 
 enum class RequestType {
@@ -94,15 +91,17 @@ private:
 	BalloonWnd Balloon;
 	// ------------
 
+	// Renderização
+	SDL_Texture* AgentTex = {};
+	SDL_Surface* AgentSur = {};
+	// ------------
+
 	// Animação
 	AnimationInfo CurrentAnimation;
-	uint Frame = 0;
-	uint LastFrame = 0;
+	int Frame = 0;
+	int LastFrame = 0;
 
 	AnimationState AnimState = AnimationState::Progressing;
-
-	std::vector<SDL_Surface*> FrameLayers = {};
-	std::vector<SDL_Surface*> FrameOverlays = {};
 
 	uint Interval = 0;
 

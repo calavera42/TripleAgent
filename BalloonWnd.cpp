@@ -3,13 +3,13 @@
 int BalloonWnd::Setup(BalloonInfo* bi)
 {
 	Window = SDL_CreateWindow(
-		"bloon",
+		"Balão de fala",
 		30,
 		30,
 		SDL_WINDOW_ALWAYS_ON_TOP |
 		SDL_WINDOW_BORDERLESS |
 		SDL_WINDOW_TRANSPARENT |
-		SDL_WINDOW_HIDDEN
+		SDL_WINDOW_NOT_FOCUSABLE
 	);
 
 	if (Window == nullptr)
@@ -146,7 +146,7 @@ void BalloonWnd::Render()
 	bounds.x = 0;
 	bounds.y = 0;
 
-	RenderBalloonShape(bounds);
+	RenderBalloonShape(bounds, Renderer);
 
 	SDL_FRect textTargetRect = {
 		(float)(TipQuad == TipQuadrant::Left ? TipDepth : 0) + CornerDiameter,
@@ -177,16 +177,16 @@ Rect BalloonWnd::GetBounds()
 	return { x, y, w, h };
 }
 
-void BalloonWnd::RenderBalloonShape(Rect bounds)
+void BalloonWnd::RenderBalloonShape(Rect bounds, SDL_Renderer* renderer)
 {
 	if (!Created)
 		return;
 
 	SDL_Point arcPositions[4] = {
-		{bounds.x, bounds.y},
-		{bounds.right() - CornerDiameter, bounds.y},
-		{bounds.right() - CornerDiameter, bounds.bottom() - CornerDiameter},
-		{bounds.x, bounds.bottom() - CornerDiameter}
+		{ bounds.x, bounds.y },
+		{ bounds.right() - CornerDiameter, bounds.y },
+		{ bounds.right() - CornerDiameter, bounds.bottom() - CornerDiameter },
+		{ bounds.x, bounds.bottom() - CornerDiameter }
 	};
 
 	SDL_Point tipPoints[3] = {};
@@ -236,7 +236,7 @@ void BalloonWnd::RenderBalloonShape(Rect bounds)
 	}
 
 	SDL_SetRenderDrawColor(
-		Renderer, 
+		renderer, 
 		BalloonStyle->BackgroundColor.Red, 
 		BalloonStyle->BackgroundColor.Green, 
 		BalloonStyle->BackgroundColor.Blue, 
@@ -250,45 +250,43 @@ void BalloonWnd::RenderBalloonShape(Rect bounds)
 	balloonRect.w += offsetsLookup[offset + 1].x;
 	balloonRect.h += offsetsLookup[offset + 1].y;
 
-	SDL_RenderFillRect(Renderer, &balloonRect);
+	SDL_RenderFillRect(renderer, &balloonRect);
 
 	SDL_SetRenderDrawColor(
-		Renderer,
+		renderer,
 		BalloonStyle->BorderColor.Red,
 		BalloonStyle->BorderColor.Green,
 		BalloonStyle->BorderColor.Blue,
 		255
 	);
 
-	SDL_RenderRect(Renderer, &balloonRect);
+	SDL_RenderRect(renderer, &balloonRect);
 
 	SDL_SetRenderDrawColor(
-		Renderer,
+		renderer,
 		BalloonStyle->BackgroundColor.Red,
 		BalloonStyle->BackgroundColor.Green,
 		BalloonStyle->BackgroundColor.Blue,
 		255
 	);
 
-	FillTriangle(tipPoints[0], tipPoints[1], tipPoints[2], BalloonStyle->BackgroundColor);
+	FillTriangle(tipPoints[0], tipPoints[1], tipPoints[2], BalloonStyle->BackgroundColor, renderer);
 
 	SDL_SetRenderDrawColor(
-		Renderer, 
+		renderer,
 		BalloonStyle->BorderColor.Red, 
 		BalloonStyle->BorderColor.Green, 
 		BalloonStyle->BorderColor.Blue, 
 		255
 	);
 
-	SDL_RenderLine(Renderer, tipPoints[0].x, tipPoints[0].y, tipPoints[1].x, tipPoints[1].y);
-	SDL_RenderLine(Renderer, tipPoints[2].x, tipPoints[2].y, tipPoints[1].x, tipPoints[1].y);
+	SDL_RenderLine(renderer, tipPoints[0].x, tipPoints[0].y, tipPoints[1].x, tipPoints[1].y);
+	SDL_RenderLine(renderer, tipPoints[2].x, tipPoints[2].y, tipPoints[1].x, tipPoints[1].y);
 
-	//SDL_RenderPoint(Renderer, tipPoints[1].x, tipPoints[1].y);
-
-	DrawCorner(arcPositions[0], CornerDiameter, false, false); // top left
-	DrawCorner(arcPositions[1], CornerDiameter, true, false); // top right
-	DrawCorner(arcPositions[2], CornerDiameter, true, true); // bottom right
-	DrawCorner(arcPositions[3], CornerDiameter, false, true); // bottom left
+	DrawCorner(arcPositions[0], CornerDiameter, renderer, false, false); // top left
+	DrawCorner(arcPositions[1], CornerDiameter, renderer, true, false); // top right
+	DrawCorner(arcPositions[2], CornerDiameter, renderer, true, true); // bottom right
+	DrawCorner(arcPositions[3], CornerDiameter, renderer, false, true); // bottom left
 }
 
 void BalloonWnd::PrepareText(string text, int posX, int posY, RGBQuad color)
@@ -315,19 +313,19 @@ void BalloonWnd::PrepareText(string text, int posX, int posY, RGBQuad color)
 	TextTexture = SDL_CreateTextureFromSurface(Renderer, TextSurface);
 }
 
-void BalloonWnd::FillTriangle(SDL_Point v1, SDL_Point v2, SDL_Point v3, RGBQuad color)
+void BalloonWnd::FillTriangle(SDL_Point v1, SDL_Point v2, SDL_Point v3, RGBQuad color, SDL_Renderer* renderer)
 {
 	int minX = std::min({ v1.x, v2.x, v3.x }) - 1;
 	int maxX = std::max({ v1.x, v2.x, v3.x }) + 1;
 
 	int minY = std::min({ v1.y, v2.y, v3.y }) - 1;
 	int maxY = std::max({ v1.y, v2.y, v3.y }) + 1;
-	SDL_SetRenderDrawColor(Renderer, color.Red, color.Green, color.Blue, 255);
+	SDL_SetRenderDrawColor(renderer, color.Red, color.Green, color.Blue, 255);
 
 	for (int x = minX; x < maxX; x++)
 		for (int y = minY; y < maxY; y++)
-			if (IsPointInTriangle({ x, y }, v1, v2, v3)) 
-				SDL_RenderPoint(Renderer, x, y);
+			if (IsPointInTriangle({ x, y }, v1, v2, v3))
+				SDL_RenderPoint(renderer, x, y);
 }
 
 bool BalloonWnd::IsPointInTriangle(SDL_Point point, SDL_Point p1, SDL_Point p2, SDL_Point p3)
@@ -350,7 +348,7 @@ float BalloonWnd::Sign(SDL_Point p1, SDL_Point p2, SDL_Point p3)
 	return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
 }
 
-void BalloonWnd::DrawCorner(SDL_Point pos, int diameter, bool flipX, bool flipY)
+void BalloonWnd::DrawCorner(SDL_Point pos, int diameter, SDL_Renderer* renderer, bool flipX, bool flipY)
 {
 	int startX = pos.x;
 	int startY = pos.y;
@@ -366,8 +364,8 @@ void BalloonWnd::DrawCorner(SDL_Point pos, int diameter, bool flipX, bool flipY)
 
 			if (distance > diameter)
 			{
-				SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 0);
-				SDL_RenderPoint(Renderer, x + startX, y + startY);
+				SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+				SDL_RenderPoint(renderer, x + startX, y + startY);
 				continue;
 			}
 
@@ -376,8 +374,8 @@ void BalloonWnd::DrawCorner(SDL_Point pos, int diameter, bool flipX, bool flipY)
 			else if (distance < diameter)
 				color = BalloonStyle->BackgroundColor;
 
-			SDL_SetRenderDrawColor(Renderer, color.Red, color.Green, color.Blue, 255);
-			SDL_RenderPoint(Renderer, x + startX, y + startY);
+			SDL_SetRenderDrawColor(renderer, color.Red, color.Green, color.Blue, 255);
+			SDL_RenderPoint(renderer, x + startX, y + startY);
 		}
 }
 
