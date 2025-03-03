@@ -35,33 +35,36 @@ class AnimationProvider
 private:
 	AgentFile* AgFile;
 
-	std::function<void()> AnimationEndLogic;
+	std::function<void(void)> AnimationEndLogic;
 
 	AnimationInfo CurrentAnimation;
 	int Frame = 0;
 	int LastFrame = 0;
 
 	AnimationState AnimState = AnimationState::Progressing;
+	AnimationState LastState = AnimationState::Progressing;
 
 	uint Interval = 0;
 
 	bool StopRequested = false;
-
-	void LoadAnimation(string name);
-
-	void UpdateAnim();
-
 	void AdvanceFrame(std::vector<BranchInfo>& branches);
-
-	void LoadAnimationFromState(AgentState state);
 
 	FrameInfo* GetFrame(uint index);
 public:
-	void Setup(AgentFile* af, std::function<void()> animEndNotify);
+	void Setup(AgentFile* af, std::function<void(void)> animEndNotify);
 
 	AnimationState GetAnimationState();
 	FrameInfo* GetCurrentFrame();
+	uint GetInterval();
+
 	bool CanSpeak();
 
+	void Update();
+
+	void LoadAnimationFromState(AgentState state);
+	void LoadAnimation(string name);
+
+	void Pause();
+	void Resume();
 };
 

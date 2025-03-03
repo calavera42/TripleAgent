@@ -10,7 +10,12 @@ bool AnimationProvider::CanSpeak()
 	return GetFrame(Frame)->Overlays.size() > 0;
 }
 
-void AnimationProvider::Setup(AgentFile* af, std::function<void()> animEndNotify)
+uint AnimationProvider::GetInterval()
+{
+	return Interval;
+}
+
+void AnimationProvider::Setup(AgentFile* af, std::function<void(void)> animEndNotify)
 {
 	AgFile = af;
 	AnimationEndLogic = animEndNotify;
@@ -38,7 +43,18 @@ void AnimationProvider::LoadAnimation(string name)
 	AnimState = AnimationState::Progressing;
 }
 
-void AnimationProvider::UpdateAnim()
+void AnimationProvider::Pause()
+{
+	LastState = AnimState;
+	AnimState = AnimationState::Paused;
+}
+
+void AnimationProvider::Resume()
+{
+	AnimState = LastState;
+}
+
+void AnimationProvider::Update()
 {
 	FrameInfo* currentFrame = GetFrame(Frame);
 

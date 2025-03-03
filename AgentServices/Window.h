@@ -33,13 +33,13 @@ private:
 	static std::map<uint, AudioInfo> AudioData;
 	static byte UsedChannels;
 
-	void PlayAudio(uint index);
 	static void AudioFinishedCallback(int channel);
 public:
-	void SetupWindow(AgentFile* AgFile);
+	void Setup(AgentFile* AgFile);
 
 	// Tem que ser chamado no mesmo thread que o SetupWindow()
 	void Update();
 
 	void PrepareFrame(FrameInfo* fi);
+	void PlayAudio(uint index);
 };

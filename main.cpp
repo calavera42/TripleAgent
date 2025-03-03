@@ -3,10 +3,7 @@
 #include <fstream>
 
 int main(int argc, char** argv) {
-	AgentFile af = {};
-	af.Load("c:/users/gregd/desktop/peedy.acs");
-
-	Agent ag = Agent(&af);
+	Agent ag = Agent("c:/users/gregd/desktop/peedy.acs");
 
 	ag.DoStuff();
 

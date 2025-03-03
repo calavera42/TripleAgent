@@ -52,7 +52,7 @@ void AgWindow::AudioFinishedCallback(int channel)
 	UsedChannels--;
 }
 
-void AgWindow::SetupWindow(AgentFile* agentFile)
+void AgWindow::Setup(AgentFile* agentFile)
 {
 	AgFile = agentFile;
 
@@ -148,11 +148,6 @@ void AgWindow::PrepareFrame(FrameInfo* fi)
 
 void AgWindow::Update()
 {
-	SDL_Event e;
-
-	SDL_PumpEvents();
-	while (SDL_PollEvent(&e));
-
 	SDL_RenderClear(Renderer);
 	SDL_RenderTexture(Renderer, AgentTex, nullptr, nullptr);
 	SDL_RenderPresent(Renderer);
