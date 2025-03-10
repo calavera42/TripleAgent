@@ -37,7 +37,7 @@ private:
 public:
 	void Setup(AgentFile* AgFile);
 
-	// Tem que ser chamado no mesmo thread que o SetupWindow()
+	// Deve ser chamado no mesmo thread que o SetupWindow()
 	void Update();
 
 	void PrepareFrame(FrameInfo* fi);

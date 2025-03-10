@@ -94,11 +94,13 @@ void AgWindow::Setup(AgentFile* agentFile)
 
 void AgWindow::PrepareFrame(FrameInfo* fi)
 {
-	SDL_Surface* agentSur;
-
 	SDL_DestroyTexture(AgentTex);
 
-	agentSur = SDL_CreateSurface(AgFile->CharInfo.Width, AgFile->CharInfo.Height, SDL_PIXELFORMAT_RGBA8888);
+	SDL_Surface* agentSur = SDL_CreateSurface(
+		AgFile->CharInfo.Width, 
+		AgFile->CharInfo.Height, 
+		SDL_PIXELFORMAT_RGBA8888
+	);
 	SDL_Renderer* renderer = SDL_CreateSoftwareRenderer(agentSur);
 
 	// TODO: renderizar overlays
@@ -138,7 +140,7 @@ void AgWindow::PrepareFrame(FrameInfo* fi)
 	for (auto& surface : surfaces)
 		SDL_DestroySurface(surface);
 
-	SDL_SetWindowShape(Window, agentSur);
+	//SDL_SetWindowShape(Window, agentSur);
 
 	AgentTex = SDL_CreateTextureFromSurface(Renderer, agentSur);
 

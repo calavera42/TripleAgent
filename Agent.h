@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AnimationProvider.h"
+#include "AgentServices/AnimationProvider.h"
 #include "AgentServices/Window.h"
 
 class Agent

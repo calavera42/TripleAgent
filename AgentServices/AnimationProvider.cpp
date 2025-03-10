@@ -5,12 +5,18 @@ FrameInfo* AnimationProvider::GetFrame(uint index)
 	return &CurrentAnimation.Frames[index];
 }
 
+void AnimationProvider::SetFrame(uint index)
+{
+	Frame = index;
+	CurrentFrame = &CurrentAnimation.Frames[index];
+}
+
 bool AnimationProvider::CanSpeak()
 {
 	return GetFrame(Frame)->Overlays.size() > 0;
 }
 
-uint AnimationProvider::GetInterval()
+uint AnimationProvider::GetInterval() const
 {
 	return Interval;
 }
@@ -28,7 +34,7 @@ AnimationState AnimationProvider::GetAnimationState()
 
 FrameInfo* AnimationProvider::GetCurrentFrame()
 {
-	return GetFrame(Frame);
+	return &CurrentAnimation.Frames[Frame];
 }
 
 void AnimationProvider::LoadAnimation(string name)
@@ -64,7 +70,7 @@ void AnimationProvider::Update()
 		AdvanceFrame(currentFrame->Branches);
 		currentFrame = GetFrame(Frame);
 
-		Interval = GetFrame(Frame)->FrameDuration;
+		Interval = currentFrame->FrameDuration;
 
 		bool isLastFrame = Frame == CurrentAnimation.Frames.size() - 1;
 		bool isBranchingFrame = currentFrame->FrameDuration == 0;
@@ -98,7 +104,7 @@ void AnimationProvider::Update()
 
 		if (exitFrame == -2
 			|| exitFrame == 0
-			|| (Frame >= CurrentAnimation.Frames.size() - 1 && exitFrame == -1)
+			|| (Frame == CurrentAnimation.Frames.size() - 1 && exitFrame == -1)
 			)
 		{
 			AnimState = AnimationState::Finished;

@@ -33,7 +33,7 @@
     <ClCompile Include="AgentServices\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AnimationProvider.cpp">
+    <ClCompile Include="AgentServices\AnimationProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -57,7 +57,7 @@
     <ClInclude Include="AgentServices\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AnimationProvider.h">
+    <ClInclude Include="AgentServices\AnimationProvider.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

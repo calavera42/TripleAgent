@@ -224,7 +224,6 @@ LocalizedInfo* AgentFile::GetLocalizedInfo(ushort langId)
 	return &LocalizationInfo[langId];
 }
 
-// FIXME: no port pro SDL3 deixou de funcionar
 SDL_Surface* AgentFile::ReadTrayIcon()
 {
 	TrayIcon output = {};

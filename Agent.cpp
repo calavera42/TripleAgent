@@ -5,11 +5,13 @@ void Agent::Loop()
 	unsigned long int lastAnimUpdate = SDL_GetTicks();
 	unsigned long int lastRedraw = SDL_GetTicks();
 
-	float delay = 60.f / 1000.f;
+	float delay = 1000.f / 30.f;
+
+	SDL_Event ev;
 
 	while (true) 
 	{
-		SDL_PumpEvents();
+		while (SDL_PollEvent(&ev));
 
 		if (SDL_GetTicks() - lastAnimUpdate >= AnimProvider.GetInterval() * 10)
 		{
@@ -31,7 +33,7 @@ void Agent::Loop()
 
 void Agent::AnimationEnd()
 {
-	AnimProvider.LoadAnimation(L"doMagic1");
+	//AnimProvider.LoadAnimation(L"doMagic1");
 	printf("Fim da animação\n");
 }
 
@@ -43,7 +45,7 @@ void Agent::DoStuff()
 		std::bind(&Agent::AnimationEnd, this)
 	);
 
-	AnimProvider.LoadAnimation(L"announce");
+	AnimProvider.LoadAnimation(L"processing");
 
 	Loop();
 }

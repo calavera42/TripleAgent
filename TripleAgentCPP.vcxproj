@@ -141,7 +141,7 @@
     <ClCompile Include="ACSFormat\AgentFile.cpp" />
     <ClCompile Include="Agent.cpp" />
     <ClCompile Include="AgentServices\Window.cpp" />
-    <ClCompile Include="AnimationProvider.cpp" />
+    <ClCompile Include="AgentServices\AnimationProvider.cpp" />
     <ClCompile Include="BalloonWnd.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -149,7 +149,7 @@
     <ClInclude Include="ACSFormat\Structs.h" />
     <ClInclude Include="Agent.h" />
     <ClInclude Include="AgentServices\Window.h" />
-    <ClInclude Include="AnimationProvider.h" />
+    <ClInclude Include="AgentServices\AnimationProvider.h" />
     <ClInclude Include="BalloonWnd.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="ACSFormat\AgentFile.h" />

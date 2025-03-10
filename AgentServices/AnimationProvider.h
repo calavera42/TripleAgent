@@ -41,6 +41,8 @@ private:
 	int Frame = 0;
 	int LastFrame = 0;
 
+	FrameInfo* CurrentFrame;
+
 	AnimationState AnimState = AnimationState::Progressing;
 	AnimationState LastState = AnimationState::Progressing;
 
@@ -50,12 +52,13 @@ private:
 	void AdvanceFrame(std::vector<BranchInfo>& branches);
 
 	FrameInfo* GetFrame(uint index);
+	void SetFrame(uint index);
 public:
 	void Setup(AgentFile* af, std::function<void(void)> animEndNotify);
 
 	AnimationState GetAnimationState();
 	FrameInfo* GetCurrentFrame();
-	uint GetInterval();
+	uint GetInterval() const;
 
 	bool CanSpeak();
 
