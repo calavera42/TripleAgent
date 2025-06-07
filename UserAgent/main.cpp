@@ -1,28 +1,24 @@
 #include "../DataProvider/include/AGXDpv.h"
 #include "../Windowing/include/AGXWin.h"
 
-#include <time.h>
-
-void UserFuntion(uint32_t* buffer)
-{
-	for (size_t i = 0; i < 160 * 128; i++)
-		buffer[i] = ((rand() & 0xFF) << 16) | ((rand() & 0xFF) << 8) | (rand() & 0xFF);
-}
-
 int main() 
 {
-	IAgentWindow* iaw = CreateAgentWindow();
-	IAgentFile* iaf = CreateAgentFile();
+	IAgentWindow* aw = CreateAgentWindow();
+	IAgentFile* af = CreateAgentFile();
 
-	iaf->Load("d:/desktop/peedy.acs");
+	af->Load("d:/desktop/peedy.acs");
 
-	srand(time(NULL));
-	std::printf("%ls", iaf->GetLocalizedInfo(0x416).CharName.c_str());
+	AnimationInfo ai = af->GetAnimationInfo(L"restpose");
+	FrameInfo fi = ai.Frames[0];
 
-	iaw->Setup(160, 128);
-	iaw->RegisterUserFuntion(UserFuntion);
-	iaw->StartMessageLoop();
+	UpdateInfo ui{};
 
+	ui.Type = UpdateType::VisibleChange;
+	ui.WindowVisible = true;
+
+	aw->Setup(af);
+	aw->UpdateState(ui);
+	aw->UpdateState({UpdateType::FrameChange, &fi});
 
 	while (true);
 

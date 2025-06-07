@@ -17,25 +17,31 @@ LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);
-		HDC hdcBitmap = CreateCompatibleDC(hdc);
+		Gdiplus::Graphics g(hdc);
 
-		auto oldBmp = SelectObject(hdcBitmap, FrameBitmap);
+		if (CurFrame)
+			AgRender.Paint(&g, CurFrame, MouthOverlayType::Narrow);
 
-		BitBlt(hdc, 0, 0, Width, Height, hdcBitmap, 0, 0, SRCCOPY);
-
-		SelectObject(hdc, oldBmp);
-		DeleteDC(hdcBitmap);
 		EndPaint(hwnd, &ps);
-	}
 		break;
-
+	}
 	case WM_DESTROY:
-		free(FrameBuffer.get());
 		break;
 
 	case WM_CLOSE:
 		PostQuitMessage(0);
 		break;
+
+	case WM_NCHITTEST: {
+		LRESULT hit = DefWindowProc(Handle, uMsg, wParam, lParam);
+		if (hit == HTCLIENT) hit = HTCAPTION;
+		return hit;
+	}
+
+	case WM_ERASEBKGND:
+	{
+		return 1;
+	}
 
 	default:
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -44,9 +50,9 @@ LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	return 0;
 }
 
-void AgentWindow::MessageLoop() const
+void AgentWindow::MessageLoop() 
 {
-	while (true) 
+	while (true)
 	{
 		MSG message = { 0 };
 		while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) 
@@ -54,42 +60,16 @@ void AgentWindow::MessageLoop() const
 			DispatchMessage(&message); 
 		}
 
-		if (UserDrawFunction != nullptr)
-			UserDrawFunction(*FrameBuffer);
-
-		InvalidateRect(Handle, NULL, FALSE);
-		UpdateWindow(Handle);
-
-		Sleep(15);
+		ProcessUpdate();
 	}
 }
 
-void AgentWindow::SetupBitmap()
+void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<int>& prom)
 {
-	HDC hdcScreen = GetDC(NULL);
+	CharacterInfo ci = af->GetCharacterInfo();
 
-	BITMAPINFO bmi = {};
-	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	bmi.bmiHeader.biWidth = Width;
-	bmi.bmiHeader.biHeight = Height;
-	bmi.bmiHeader.biPlanes = 1;
-	bmi.bmiHeader.biBitCount = 32;
-	bmi.bmiHeader.biCompression = BI_RGB;
+	AgRender.Setup(af);
 
-	FrameBitmap = CreateDIBSection(
-		hdcScreen, 
-		&bmi, 
-		DIB_RGB_COLORS, 
-		reinterpret_cast<void**>(FrameBuffer.get()), 
-		NULL, 
-		NULL
-	);
-
-	ReleaseDC(NULL, hdcScreen);
-}
-
-int AgentWindow::Setup(uint16_t width, uint16_t height)
-{
 	const wchar_t wndClass[] = L"agntwndclss";
 
 	WNDCLASS wc = {};
@@ -100,55 +80,83 @@ int AgentWindow::Setup(uint16_t width, uint16_t height)
 
 	if (!RegisterClass(&wc))
 	{
-		MessageBoxW(NULL, L"Falha ao registrar a classe da janela do agente.", L"Agent Windowing API", MB_ICONERROR);
-		return 0;
+		prom.set_value(0);
+		return;
 	}
 
 	HWND hwnd = CreateWindowEx(
-		WS_EX_NOACTIVATE,
+		WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_LAYERED,
 		wndClass,
-		L"agntsmth",
-		WS_BORDER | WS_ACTIVECAPTION | WS_VISIBLE,
+		af->GetLocalizedInfo(langId).CharName.c_str(),
+		WS_POPUP,
 		CW_USEDEFAULT, CW_USEDEFAULT,
-		width, height,
+		ci.Width, ci.Height,
 		NULL, NULL, hInstDll, NULL
 	);
 
 	if (hwnd == NULL)
 	{
-		MessageBoxW(NULL, L"Falha ao criar janela do agente.", L"Agent Windowing API", MB_ICONERROR);
-		return 0;
+		prom.set_value(1);
+		return;
 	}
 
 	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
 
-	Width = width;
-	Height = height;
-
-	PixelBufferSize = ((size_t)Width * (size_t)Height) * 4;
-
-	uint32_t* frameBuffer = (uint32_t*)malloc(PixelBufferSize);
-
-	if (frameBuffer == nullptr)
-	{
-		MessageBoxW(NULL, L"Falha ao alocar o buffer da janela.", L"Agent Windowing API", MB_ICONERROR);
-		return 0;
-	}
-
-	memset(frameBuffer, 0, PixelBufferSize);
-
-	FrameBuffer = std::make_shared<uint32_t*>(frameBuffer);
+	Width = ci.Width;
+	Height = ci.Height;
 
 	Handle = hwnd;
 
-	SetupBitmap();
+	SetLayeredWindowAttributes(Handle, 0x00ff00ff, 255, LWA_COLORKEY);
 
-	return 1;
+	prom.set_value(0);
+
+	MessageLoop();
 }
 
-void AgentWindow::RegisterUserFuntion(std::function<void(uint32_t*)> func)
+UpdateInfo AgentWindow::GetUpdate()
 {
-	UserDrawFunction = func;
+	std::lock_guard<std::mutex> lock(QueueMutex);
+
+	if (UpdateQueue.empty())
+		return {};
+
+	UpdateInfo ui = UpdateQueue.front();
+	UpdateQueue.pop();
+
+	return ui;
+}
+
+void AgentWindow::ProcessUpdate()
+{
+	UpdateInfo ui = GetUpdate();
+
+	switch (ui.Type) 
+	{
+	case UpdateType::VisibleChange:
+		ShowWindow(Handle, ui.WindowVisible ? SW_SHOW : SW_HIDE);
+		break;
+	case UpdateType::FrameChange:
+	{
+		CurFrame = ui.Frame;
+		InvalidateRect(Handle, NULL, TRUE);
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+int AgentWindow::Setup(IAgentFile* af, uint16_t langId)
+{
+	std::promise<int> promise;
+	std::future<int> future = promise.get_future();
+
+	std::thread([this, af, langId, prom = std::move(promise)]() mutable {
+		this->InternalSetup(af, langId, prom);
+	}).detach();
+
+	return future.get();
 }
 
 uint16_t AgentWindow::GetWidth()
@@ -165,29 +173,14 @@ bool AgentWindow::IsVisible()
 {
 	return IsWindowVisible(Handle);
 }
- 
-void AgentWindow::SetPosition(uint16_t x, uint16_t y)
+
+void AgentWindow::UpdateState(UpdateInfo info)
 {
-	MoveWindow(Handle, x, y, Width, Height, false);
+	std::lock_guard<std::mutex> lock(QueueMutex);
+	UpdateQueue.push(info);
 }
 
-void AgentWindow::Hide()
+void AgentWindow::Do(IAgentFile* f)
 {
-	ShowWindow(Handle, SW_HIDE);
-}
-
-void AgentWindow::Show()
-{
-	ShowWindow(Handle, SW_SHOW);
-}
-
-void AgentWindow::StartMessageLoop()
-{
-	if (Handle == nullptr) 
-	{
-		MessageBox(NULL, L"A janela não foi criada.", L"Agent Windowing API", MB_ICONERROR);
-		return;
-	}
-
 	MessageLoop();
 }

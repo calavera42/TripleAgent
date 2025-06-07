@@ -48,7 +48,8 @@ enum class TransitionType : byte {
 };
 
 enum class CharacterFlags : uint {
-	VoiceOutput = 1 << 5,
+	VoiceEnabled = 1 << 5,
+	BalloonDisabled = 1 << 8,
 	BalloonEnabled = 1 << 9,
 	BalloonSizeToText = 1 << 16,
 	BalloonAutoHideDisabled = 1 << 17,
@@ -67,8 +68,6 @@ struct ImageData {
 
 	void* Buffer{};
 	size_t Size{};
-
-	std::vector<RGBQuad>& ColorPalette;
 };
 
 #pragma pack(push, 1)
@@ -205,6 +204,8 @@ struct CharacterInfo {
 	Guid CharId{};
 	ushort Width{};
 	ushort Height{};
+	byte TransparencyIndex{};
+	std::vector<RGBQuad> ColorTable{};
 	CharacterFlags Flags{};
 	ushort AnimationMajorVersion{};
 	ushort AnimationMinorVersion{};
@@ -234,6 +235,9 @@ public:
 
 	virtual ImageData ReadImageData(unsigned int index) = 0;
 	virtual AudioData ReadAudioData(unsigned int index) = 0;
+
+	virtual void FreeImageData(ImageData& id) = 0;
+	virtual void FreeAudioData(AudioData& id) = 0;
 
 	virtual std::vector<std::wstring> GetAnimationNames() = 0;
 };

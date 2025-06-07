@@ -83,21 +83,28 @@ int AgentFile::Load(std::string path)
 
 	ReadTo(FileHeader, Stream);
 
-	if (FileHeader.Signature != 0xABCDABC3) {
+	if (FileHeader.Signature != 0xABCDABC3)
 		return 2;
-	}
 
 	ReadCharInfo(&FileHeader.CharacterInfo);
+
+	if (CharInfo.MajorVersion != 2)
+		return 2;
 
 	ReadAnimationPointers(&FileHeader.AnimationInfo);
 	ReadImagePointers(&FileHeader.ImageInfo);
 	ReadAudioPointers(&FileHeader.AudioData);
+
+	Initialized = true;
 
 	return 0;
 }
 
 CharacterInfo AgentFile::GetCharacterInfo()
 {
+	if (!Initialized)
+		throw std::runtime_error("Não inicializado.");
+
 	return CharInfo;
 }
 
@@ -120,7 +127,7 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 	ReadTo(CharInfo.CharId, Stream);
 	ReadTo(CharInfo.Width, Stream);
 	ReadTo(CharInfo.Height, Stream);
-	ReadTo(transparentColorIndex, Stream);
+	ReadTo(CharInfo.TransparencyIndex, Stream);
 	ReadTo(CharInfo.Flags, Stream);
 	ReadTo(CharInfo.AnimationMajorVersion, Stream);
 	ReadTo(CharInfo.AnimationMinorVersion, Stream);
@@ -128,8 +135,7 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 	ReadVoiceInfo();
 	ReadBalloonInfo();
 
-	ColorPallete = ReadVector<uint, RGBQuad>(Stream, NULL);
-	ColorKey = ColorPallete[transparentColorIndex];
+	CharInfo.ColorTable = ReadVector<uint, RGBQuad>(Stream, NULL);
 
 	ReadTo(trayIconEnabled, Stream);
 
@@ -174,7 +180,7 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 
 void AgentFile::ReadVoiceInfo()
 {
-	if (!((uint)CharInfo.Flags & (uint)CharacterFlags::VoiceOutput))
+	if (!((uint)CharInfo.Flags & (uint)CharacterFlags::VoiceEnabled))
 		return;
 
 	ReadTo(CharInfo.VoiceInfo, Stream);
@@ -223,6 +229,9 @@ void AgentFile::ReadBalloonInfo()
 
 LocalizedInfo AgentFile::GetLocalizedInfo(ushort langId)
 {
+	if (!Initialized)
+		throw std::runtime_error("Não inicializado.");
+
 	if (LocalizationInfo.find(langId) == LocalizationInfo.end())
 		return {};
 
@@ -260,6 +269,9 @@ void AgentFile::ReadAnimationPointers(ACSLocator* pos)
 
 AnimationInfo AgentFile::GetAnimationInfo(string name)
 {
+	if (!Initialized)
+		throw std::runtime_error("Não inicializado.");
+
 	NormalizeString(name);
 
 	if (Animations.count(name) == 0)
@@ -311,7 +323,7 @@ AnimationInfo AgentFile::GetAnimationInfo(string name)
 		});
 
 		return fi;
-		});
+	});
 
 	return info;
 }
@@ -325,8 +337,11 @@ void AgentFile::ReadImagePointers(ACSLocator* pos)
 
 ImageData AgentFile::ReadImageData(uint index)
 {
+	if (!Initialized)
+		throw std::runtime_error("Não inicializado.");
+
 	if (index >= ImagePointers.size())
-		return { 0, 0, nullptr, 0, ColorPallete };
+		return { 0, 0, nullptr, 0 };
 
 	ImagePointer* imgPointer = &ImagePointers[index];
 	ImageInfo imgInfo = {};
@@ -341,7 +356,7 @@ ImageData AgentFile::ReadImageData(uint index)
 	imgInfo.ImageData.Data = (byte*)malloc(imgInfo.ImageData.SizeOfData);
 
 	if (imgInfo.ImageData.Data == 0)
-		return { 0, 0, nullptr, 0, ColorPallete };
+		return { 0, 0, nullptr, 0 };
 
 	Stream.read((char*)imgInfo.ImageData.Data, imgInfo.ImageData.SizeOfData);
 
@@ -349,16 +364,19 @@ ImageData AgentFile::ReadImageData(uint index)
 	byte* uncompressedImage = (byte*)malloc(uncompressedImageSize);
 
 	if (uncompressedImage == 0)
-		return { 0, 0, nullptr, 0, ColorPallete };
+		return { 0, 0, nullptr, 0 };
 
 	DecompressData(imgInfo.ImageData.Data, imgInfo.ImageData.SizeOfData, uncompressedImage);
 	free(imgInfo.ImageData.Data);
 
-	return { imgInfo.Width, imgInfo.Height, uncompressedImage, uncompressedImageSize, ColorPallete };
+	return { imgInfo.Width, imgInfo.Height, uncompressedImage, uncompressedImageSize };
 }
 
 AudioData AgentFile::ReadAudioData(uint index)
 {
+	if (!Initialized)
+		throw std::runtime_error("Não inicializado.");
+
 	AudioPointer ap = AudioPointers[index];
 
 	JumpTo(ap.AudioData.Offset, Stream);
@@ -372,12 +390,25 @@ AudioData AgentFile::ReadAudioData(uint index)
 
 std::vector<string> AgentFile::GetAnimationNames()
 {
+	if (!Initialized)
+		throw std::runtime_error("Não inicializado.");
+
 	std::vector<string> names = {};
 
 	for (const auto& animInfo : Animations)
 		names.push_back(animInfo.first);
 
 	return names;
+}
+
+void AgentFile::FreeImageData(ImageData& id)
+{
+	free(id.Buffer);
+}
+
+void AgentFile::FreeAudioData(AudioData& id)
+{
+	free(id.Buffer);
 }
 
 void AgentFile::ReadAudioPointers(ACSLocator* pos)
@@ -448,6 +479,9 @@ void AgentFile::DecompressData(void* inputBuffer, size_t inputSize, byte* output
 
 StateInfo AgentFile::GetStateInfo(string name)
 {
+	if (!Initialized)
+		throw std::runtime_error("Não inicializado.");
+
 	NormalizeString(name);
 	if (!AnimationStates.count(name))
 		return {};

@@ -28,14 +28,36 @@ private:
 	std::map<ushort, LocalizedInfo> LocalizationInfo = {};
 
 	CharacterInfo CharInfo = {};
-
-	std::vector<RGBQuad> ColorPallete = {};
-	RGBQuad ColorKey = {};
-
-	std::ifstream Stream;
-
 	TrayIcon AgentIcon = {};
 
+	bool Initialized = false;
+
+	std::ifstream Stream;
+public:
+	//Entrada:
+	// 	path - Caminho do arquivo do agente
+	//
+	//Saída:
+	// 	0 - Sucesso
+	// 	1 - Não foi possível abrir o arquivo
+	// 	2 - Formato de arquivo inválido
+	virtual int Load(std::string path) override;
+
+	virtual CharacterInfo GetCharacterInfo() override;
+	virtual LocalizedInfo GetLocalizedInfo(ushort langId) override;
+
+	virtual StateInfo GetStateInfo(string name) override;
+	virtual AnimationInfo GetAnimationInfo(string name) override;
+
+	virtual ImageData ReadImageData(uint index) override;
+	virtual AudioData ReadAudioData(uint index) override;
+
+	virtual void FreeImageData(ImageData& id) override;
+	virtual void FreeAudioData(AudioData& id) override;
+
+	std::vector<std::wstring> GetAnimationNames() override;
+
+private:
 	static string ReadString(std::ifstream& str);
 
 	template <typename Type>
@@ -57,25 +79,4 @@ private:
 	void ReadImagePointers(ACSLocator* pos);
 	void ReadAudioPointers(ACSLocator* pos);
 	void DecompressData(void* inputBuffer, size_t inputSize, byte* outputBuffer);
-
-public:
-	//Entrada:
-	// 	path - Caminho do arquivo do agente
-	//
-	//Saída:
-	// 	0 - Sucesso
-	// 	1 - Não foi possível abrir o arquivo
-	// 	2 - Formato de arquivo inválido
-	virtual int Load(std::string path) override;
-
-	virtual CharacterInfo GetCharacterInfo() override;
-	virtual LocalizedInfo GetLocalizedInfo(ushort langId) override;
-
-	virtual StateInfo GetStateInfo(string name) override;
-	virtual AnimationInfo GetAnimationInfo(string name) override;
-
-	virtual ImageData ReadImageData(uint index) override;
-	virtual AudioData ReadAudioData(uint index) override;
-
-	std::vector<std::wstring> GetAnimationNames() override;
 };

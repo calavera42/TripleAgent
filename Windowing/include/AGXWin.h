@@ -10,23 +10,52 @@
 #include <string>
 #include <functional>
 
+#include "../../DataProvider/include/agxdpv.h"
+
+enum class UpdateType {
+	None,
+	FrameChange,
+	MouthChange,
+	MoveWindow,
+	VisibleChange
+};
+
+struct Point {
+	uint32_t X;
+	uint32_t Y;
+};
+
+struct UpdateInfo {
+	UpdateType Type;
+	union {
+		FrameInfo* Frame;
+		MouthOverlayType Mouth;
+		Point TargetPos;
+		bool WindowVisible;
+	};
+};
+
 class IAgentWindow {
 public:
-	virtual int Setup(uint16_t width, uint16_t height) = 0;
-
-	virtual void StartMessageLoop() = 0;
+	virtual int Setup(IAgentFile* af, uint16_t langid = 0x416) = 0;
 
 	virtual uint16_t GetWidth() = 0;
 	virtual uint16_t GetHeight() = 0;
 
 	virtual bool IsVisible() = 0;
 
-	virtual void RegisterUserFuntion(std::function<void(uint32_t*)> func) = 0;
+	virtual void UpdateState(UpdateInfo info) = 0;
 
-	virtual void SetPosition(uint16_t x, uint16_t y) = 0;
+	virtual void Do(IAgentFile* f) = 0;
+};
 
-	virtual void Hide() = 0;
-	virtual void Show() = 0;
+class IBaloonWindow {
+public:
+	virtual void Setup(BalloonInfo bi) = 0;
+
+	virtual void Show(std::wstring text) = 0;
+
+	virtual void PaceUpdate() = 0;
 };
 
 extern "C" AGENT_WIN IAgentWindow* CreateAgentWindow();
