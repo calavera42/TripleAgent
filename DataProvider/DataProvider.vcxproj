@@ -164,6 +164,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\AGXDpv.h" />
+    <ClInclude Include="include\Structs.h" />
     <ClInclude Include="src\AgentFile.h" />
     <ClInclude Include="src\BitReader.h" />
     <ClInclude Include="resource.h" />

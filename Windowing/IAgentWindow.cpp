@@ -1,5 +1,7 @@
 #include "include/AGXWin.h"
-#include "src/AgentWindow.h"
+
+#include "src/Agent/AgentWindow.h"
+#include "src/Balloon/BalloonWindow.h"
 
 AGENT_WIN IAgentWindow* CreateAgentWindow()
 {
@@ -7,6 +9,16 @@ AGENT_WIN IAgentWindow* CreateAgentWindow()
 }
 
 AGENT_WIN void DeleteAgentWindow(IAgentWindow* win)
+{
+    delete win;
+}
+
+AGENT_WIN IBalloonWindow* CreateBalloonWindow()
+{
+    return new BalloonWindow();
+}
+
+AGENT_WIN void DeleteBalloonWindow(IBalloonWindow* win)
 {
     delete win;
 }

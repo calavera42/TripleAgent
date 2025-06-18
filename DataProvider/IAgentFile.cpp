@@ -3,7 +3,7 @@
 
 AGENT_DPV IAgentFile* CreateAgentFile()
 {
-	return new AgentFile();
+	return new AgentFile;
 }
 
 AGENT_DPV void DeleteAgentFile(IAgentFile* agent)

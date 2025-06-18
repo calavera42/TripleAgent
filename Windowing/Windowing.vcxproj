@@ -160,15 +160,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\AgentRendering.cpp" />
-    <ClCompile Include="src\AgentWindow.cpp" />
+    <ClCompile Include="src\Balloon\BalloonRendering.cpp" />
+    <ClCompile Include="src\Balloon\BalloonWindow.cpp" />
+    <ClCompile Include="src\Agent\AgentRendering.cpp" />
+    <ClCompile Include="src\Agent\AgentWindow.cpp" />
     <ClCompile Include="IAgentWindow.cpp" />
     <ClCompile Include="include\AGXWin.h" />
+    <ClCompile Include="src\Balloon\IBalloonContent.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\AgentRendering.h" />
+    <ClInclude Include="src\Balloon\BalloonRendering.h" />
+    <ClInclude Include="src\Balloon\BalloonWindow.h" />
+    <ClInclude Include="src\Agent\AgentRendering.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="src\AgentWindow.h" />
+    <ClInclude Include="src\Agent\AgentWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

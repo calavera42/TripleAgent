@@ -20,7 +20,7 @@ public:
 		if (CurBit == 8) 
 		{
 			if (BytesRead == Length)
-				throw ("Tentativa de ler fora da do buffer.");
+				throw ("Tentativa de ler fora do buffer.");
 
 			CurByte = *Position;
 			CurBit = 0;

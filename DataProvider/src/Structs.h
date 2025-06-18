@@ -1,14 +1,19 @@
 #pragma once
 
+struct DataBlock {
+	uint SizeOfData;
+	std::shared_ptr<byte> Data;
+};
+
 struct ACSLocator {
 	uint Offset;
 	uint Size;
 };
 
 struct CompressedData {
-	uint CompressedSize;
-	uint OriginalSize;
-	byte* Data;
+	uint CompressedSize{};
+	uint OriginalSize{};
+	std::shared_ptr<byte> Data;
 };
 
 struct AnimationPointer {

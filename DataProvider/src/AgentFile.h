@@ -52,14 +52,13 @@ public:
 	virtual ImageData ReadImageData(uint index) override;
 	virtual AudioData ReadAudioData(uint index) override;
 
-	virtual void FreeImageData(ImageData& id) override;
-	virtual void FreeAudioData(AudioData& id) override;
+	virtual RgnData ReadImageRegion(unsigned int index) override;
+
+	virtual TrayIcon GetAgentIcon() override;
 
 	std::vector<std::wstring> GetAnimationNames() override;
 
 private:
-	static string ReadString(std::ifstream& str);
-
 	template <typename Type>
 	static Type* ReadElements(std::ifstream& str, size_t count);
 
@@ -69,6 +68,7 @@ private:
 	template <typename Type>
 	static Type ReadSimple(std::ifstream& str);
 
+	static string ReadString(std::ifstream& str);
 	static void NormalizeString(string& s);
 
 	void ReadCharInfo(ACSLocator* pos);
@@ -78,5 +78,6 @@ private:
 	void ReadAnimationPointers(ACSLocator* pos);
 	void ReadImagePointers(ACSLocator* pos);
 	void ReadAudioPointers(ACSLocator* pos);
-	void DecompressData(void* inputBuffer, size_t inputSize, byte* outputBuffer);
+	RgnData ReadRegionData(CompressedData* cd);
+	void DecompressData(byte* inputBuffer, size_t inputSize, byte* outputBuffer);
 };

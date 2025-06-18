@@ -119,7 +119,7 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 
 	ACSLocator localizedInfo = {};
 	byte transparentColorIndex = 0;
-	bool trayIconEnabled;
+	bool trayIconEnabled = false;
 
 	ReadTo(CharInfo.MinorVersion, Stream);
 	ReadTo(CharInfo.MajorVersion, Stream);
@@ -313,10 +313,9 @@ AnimationInfo AgentFile::GetAnimationInfo(string name)
 
 			if (oi.HasRegionData)
 			{
-				oi.RegionData = {};
-
-				ReadTo(oi.RegionData.SizeOfData, str);
-				oi.RegionData.Data = ReadElements<byte>(str, oi.RegionData.SizeOfData);
+				int regionSize = 0;
+				ReadTo(regionSize, str);
+				Skip(regionSize, str);
 			}
 
 			return oi;
@@ -332,7 +331,7 @@ void AgentFile::ReadImagePointers(ACSLocator* pos)
 {
 	JumpTo(pos->Offset, Stream);
 
-	ImagePointers = ReadVector<uint, ImagePointer>(Stream, ReadSimple<ImagePointer>);
+	ImagePointers = ReadVector<uint, ImagePointer>(Stream, NULL);
 }
 
 ImageData AgentFile::ReadImageData(uint index)
@@ -341,35 +340,81 @@ ImageData AgentFile::ReadImageData(uint index)
 		throw std::runtime_error("Não inicializado.");
 
 	if (index >= ImagePointers.size())
-		return { 0, 0, nullptr, 0 };
+		throw std::invalid_argument("Imagem inexistente.");
 
-	ImagePointer* imgPointer = &ImagePointers[index];
+	ImagePointer imgPointer = ImagePointers[index];
 	ImageInfo imgInfo = {};
 
-	JumpTo(imgPointer->LocationOfImage.Offset, Stream);
+	JumpTo(imgPointer.LocationOfImage.Offset, Stream);
+
 	ReadTo(imgInfo.Unknown, Stream);
 	ReadTo(imgInfo.Width, Stream);
 	ReadTo(imgInfo.Height, Stream);
 	ReadTo(imgInfo.Compressed, Stream);
 	ReadTo(imgInfo.ImageData.SizeOfData, Stream);
 
-	imgInfo.ImageData.Data = (byte*)malloc(imgInfo.ImageData.SizeOfData);
+	byte* imgData = (byte*)malloc(imgInfo.ImageData.SizeOfData);
 
-	if (imgInfo.ImageData.Data == 0)
-		return { 0, 0, nullptr, 0 };
+	if (!imgData)
+		throw std::runtime_error("Falha ao alocar memória.");
 
-	Stream.read((char*)imgInfo.ImageData.Data, imgInfo.ImageData.SizeOfData);
+	Stream.read((char*)imgData, imgInfo.ImageData.SizeOfData);
 
-	size_t uncompressedImageSize = (size_t)imgInfo.Width * (size_t)imgInfo.Height;
+	size_t uncompressedImageSize = (size_t)imgInfo.Width * (size_t)imgInfo.Height; // sempre 8bpp
 	byte* uncompressedImage = (byte*)malloc(uncompressedImageSize);
 
-	if (uncompressedImage == 0)
-		return { 0, 0, nullptr, 0 };
+	if (!uncompressedImage)
+		throw std::runtime_error("Falha ao alocar memória.");
 
-	DecompressData(imgInfo.ImageData.Data, imgInfo.ImageData.SizeOfData, uncompressedImage);
-	free(imgInfo.ImageData.Data);
+	DecompressData(imgData, imgInfo.ImageData.SizeOfData, uncompressedImage);
+	free(imgData);
 
-	return { imgInfo.Width, imgInfo.Height, uncompressedImage, uncompressedImageSize };
+	return { 
+		imgInfo.Width, 
+		imgInfo.Height, 
+		std::shared_ptr<byte>(uncompressedImage, free), 
+		uncompressedImageSize 
+	};
+}
+
+RgnData AgentFile::ReadImageRegion(unsigned int index)
+{
+	if (!Initialized)
+		throw std::runtime_error("Não inicializado.");
+
+	if (index >= ImagePointers.size())
+		throw std::runtime_error("Imagem inexistente.");
+
+	ImagePointer imgPointer = ImagePointers[index];
+	ImageInfo imgInfo = {};
+
+	JumpTo(imgPointer.LocationOfImage.Offset, Stream);
+
+	ReadTo(imgInfo.Unknown, Stream);
+	ReadTo(imgInfo.Width, Stream);
+	ReadTo(imgInfo.Height, Stream);
+	ReadTo(imgInfo.Compressed, Stream);
+	ReadTo(imgInfo.ImageData.SizeOfData, Stream);
+
+	Skip(imgInfo.ImageData.SizeOfData, Stream);
+
+	CompressedData cd = {};
+
+	ReadTo(cd.CompressedSize, Stream);
+	ReadTo(cd.OriginalSize, Stream);
+
+	int rawSize = cd.CompressedSize ? cd.CompressedSize : cd.OriginalSize;
+
+	byte* rgnData = (byte*)malloc(rawSize);
+
+	if (!rgnData)
+		throw std::runtime_error("Falha ao alocar memória.");
+
+	Stream.read((char*)rgnData, rawSize);
+
+	cd.Data = std::shared_ptr<byte>(rgnData, free);
+
+	return ReadRegionData(&cd);
 }
 
 AudioData AgentFile::ReadAudioData(uint index)
@@ -377,15 +422,18 @@ AudioData AgentFile::ReadAudioData(uint index)
 	if (!Initialized)
 		throw std::runtime_error("Não inicializado.");
 
+	if (index >= AudioPointers.size())
+		throw std::invalid_argument("Áudio inexistente.");
+
 	AudioPointer ap = AudioPointers[index];
 
 	JumpTo(ap.AudioData.Offset, Stream);
 
-	void* audioData = calloc(ap.AudioData.Size, 1);
+	byte* audioData = (byte*)calloc(ap.AudioData.Size, 1);
 
 	Stream.read((char*)audioData, ap.AudioData.Size);
 
-	return { audioData, ap.AudioData.Size };
+	return { std::shared_ptr<byte>(audioData, free), ap.AudioData.Size };
 }
 
 std::vector<string> AgentFile::GetAnimationNames()
@@ -401,25 +449,38 @@ std::vector<string> AgentFile::GetAnimationNames()
 	return names;
 }
 
-void AgentFile::FreeImageData(ImageData& id)
-{
-	free(id.Buffer);
-}
-
-void AgentFile::FreeAudioData(AudioData& id)
-{
-	free(id.Buffer);
-}
-
 void AgentFile::ReadAudioPointers(ACSLocator* pos)
 {
 	JumpTo(pos->Offset, Stream);
-	AudioPointers = ReadVector<uint, AudioPointer>(Stream, ReadSimple<AudioPointer>);
+	AudioPointers = ReadVector<uint, AudioPointer>(Stream, NULL);
 }
 
-void AgentFile::DecompressData(void* inputBuffer, size_t inputSize, byte* outputBuffer)
+RgnData AgentFile::ReadRegionData(CompressedData* cd)
 {
-	BitReader br = BitReader((byte*)inputBuffer, inputSize);
+	RgnData out = {};
+
+	std::shared_ptr<byte> outputBuffer = cd->Data;
+
+	if (cd->CompressedSize != 0)
+	{
+		outputBuffer = std::shared_ptr<byte>((byte*)malloc(cd->OriginalSize), free);
+		DecompressData(cd->Data.get(), cd->CompressedSize, outputBuffer.get());
+	}
+
+	if (!outputBuffer || cd->OriginalSize < 32)
+		throw std::runtime_error("Falha ao alocar ou ler memória.");
+
+	memcpy(&out.Header, outputBuffer.get(), sizeof(out.Header));
+
+	// os outros rects não têm tanto uso...
+
+	return out;
+}
+
+// Essa função espera que o buffer de saída tenha o tamanho correto
+void AgentFile::DecompressData(byte* inputBuffer, size_t inputSize, byte* outputBuffer)
+{
+	BitReader br = BitReader(inputBuffer, inputSize);
 
 	const byte bitCountTable[] = {
 		6, 9, 12, 20
@@ -475,6 +536,11 @@ void AgentFile::DecompressData(void* inputBuffer, size_t inputSize, byte* output
 			index++;
 		}
 	}
+}
+
+TrayIcon AgentFile::GetAgentIcon()
+{
+	return AgentIcon;
 }
 
 StateInfo AgentFile::GetStateInfo(string name)
