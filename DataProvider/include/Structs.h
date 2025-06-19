@@ -153,8 +153,8 @@ struct IconImage {
 };
 
 struct TrayIcon {
-	uint SizeOfMonochromeData{};
-	IconImage MonochromeBitmapData{};
+	uint SizeOfMaskData{};
+	IconImage MaskBitmapData{};
 	uint SizeOfColorData{};
 	IconImage ColorBitmapData{};
 };

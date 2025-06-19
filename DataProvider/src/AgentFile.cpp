@@ -141,8 +141,8 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 
 	if (trayIconEnabled) 
 	{
-		ReadTo(AgentIcon.SizeOfMonochromeData, Stream);
-		AgentIcon.MonochromeBitmapData = ReadIconImage();
+		ReadTo(AgentIcon.SizeOfMaskData, Stream);
+		AgentIcon.MaskBitmapData = ReadIconImage();
 
 		ReadTo(AgentIcon.SizeOfColorData, Stream);
 		AgentIcon.ColorBitmapData = ReadIconImage();

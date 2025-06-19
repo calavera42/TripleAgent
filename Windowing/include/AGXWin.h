@@ -36,8 +36,8 @@ struct AgPoint {
 };
 
 struct Event {
-	EventType Type;
-	std::variant<std::shared_ptr<FrameInfo>, MouthOverlayType, AgPoint, bool> Data;
+	EventType Type{};
+	std::variant<std::shared_ptr<FrameInfo>, MouthOverlayType, AgPoint, bool> Data{};
 };
 
 class IAgentWindow {
@@ -52,7 +52,7 @@ public:
 
 class IBalloonWindow {
 public:
-	virtual int Setup(BalloonInfo bi, CharacterInfo ci) = 0;
+	virtual int Setup(CharacterInfo ci) = 0;
 	virtual void Show(std::wstring text) = 0;
 	virtual void PaceUpdate() = 0;
 };

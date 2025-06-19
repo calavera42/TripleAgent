@@ -57,7 +57,7 @@ LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 			WindowStartDragging = true;
 
 			RECT* r = (RECT*)lParam;
-			AgPoint ap = { (uint32_t)r->left, (uint32_t)r->top };
+			AgPoint ap = { r->left, r->top };
 
 			PushWindowEvent({ EventType::WindowDragStart, ap });
 			return TRUE;
@@ -73,7 +73,7 @@ LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 			RECT r = {};
 			GetWindowRect(Handle, &r);
 
-			AgPoint ap = { (uint32_t)r.left, (uint32_t)r.top };
+			AgPoint ap = { r.left, r.top };
 
 			PushWindowEvent({ EventType::WindowDragEnd, ap });
 			return TRUE;
@@ -113,7 +113,7 @@ void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<in
 
 	bool windowHasMenu = false;
 	int windowStyle = WS_CAPTION | (windowHasMenu ? WS_SYSMENU : 0);
-	int windowExStyle = /*WS_EX_NOACTIVATE |*/ WS_EX_TOPMOST | WS_EX_LAYERED;
+	int windowExStyle = WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_LAYERED;
 
 	// FIXME: talvez seja interessante usar a cor de transparência do agente aqui
 	uint32_t bckgColor = 0x00FF00FF; // magenta monamour

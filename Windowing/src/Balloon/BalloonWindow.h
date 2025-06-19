@@ -5,7 +5,6 @@
 #include <future>
 
 #include "../../include/AGXWin.h"
-#include "BalloonRendering.h"
 
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define hInstDll ((HINSTANCE)&__ImageBase)
@@ -21,18 +20,15 @@ private:
 	BalloonInfo BalloonCfg;
 	CharacterInfo CharInfo;
 
-	BalloonRendering BalloonRenderer;
-
 	static LRESULT CALLBACK IntWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-	void InternalSetup(BalloonInfo bi, CharacterInfo ci, std::promise<int>& prom);
+	void InternalSetup(CharacterInfo ci, std::promise<int>& prom);
 	AgRect CalcWinSize(AgRect textSize);
 	void MessageLoop();
 
 public:
-	int Setup(BalloonInfo bi, CharacterInfo ci) override;
+	int Setup(CharacterInfo ci) override;
 	void Show(std::wstring text) override;
 	void PaceUpdate() override;
 };
-

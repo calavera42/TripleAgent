@@ -8,11 +8,18 @@ int main()
 {
 	IAgentFile* af = CreateAgentFile();
 	IAgentWindow* aw = CreateAgentWindow();
+	IBalloonWindow* ibw = CreateBalloonWindow();
 
 	af->Load("d:/desktop/merlin.acs");
 
 	AnimationInfo ai = af->GetAnimationInfo(L"restpose");
+	CharacterInfo ci = af->GetCharacterInfo();
+
+	TrayIcon ti = af->GetAgentIcon();
+
 	FrameInfo fi = ai.Frames[0];
+
+	ibw->Setup(ci);
 
 	aw->Setup(af);
 	aw->UpdateState({ EventType::AgentVisibleChange, true });

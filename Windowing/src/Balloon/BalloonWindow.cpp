@@ -23,7 +23,8 @@ LRESULT BalloonWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
 		Graphics screen(hdc);
 
-		
+		/*if(CurrentContent)
+			BalloonRenderer.Paint(&screen, CurrentContent, {});*/
 		
 		EndPaint(hwnd, &ps);
 		break;
@@ -52,19 +53,19 @@ void BalloonWindow::MessageLoop()
 	}
 }
 
-int BalloonWindow::Setup(BalloonInfo bi, CharacterInfo ci)
+int BalloonWindow::Setup(CharacterInfo ci)
 {
 	std::promise<int> promise;
 	std::future<int> future = promise.get_future();
 
-	std::thread([this, bi, ci, prom = std::move(promise)]() mutable {
-		this->InternalSetup(bi, ci, prom);
+	std::thread([this, ci, prom = std::move(promise)]() mutable {
+		this->InternalSetup(ci, prom);
 	}).detach();
 
 	return future.get();
 }
 
-void BalloonWindow::InternalSetup(BalloonInfo bi, CharacterInfo ci, std::promise<int>& prom)
+void BalloonWindow::InternalSetup(CharacterInfo ci, std::promise<int>& prom)
 {
 	const wchar_t wndClass[] = L"agntblnclss";
 	
@@ -73,6 +74,7 @@ void BalloonWindow::InternalSetup(BalloonInfo bi, CharacterInfo ci, std::promise
 	wc.lpfnWndProc = (WNDPROC)IntWindowProc;
 	wc.hInstance = hInstDll;
 	wc.lpszClassName = wndClass;
+	wc.hbrBackground = CreateSolidBrush(0x00880000);
 
 	if (!RegisterClass(&wc))
 	{
@@ -84,7 +86,7 @@ void BalloonWindow::InternalSetup(BalloonInfo bi, CharacterInfo ci, std::promise
 		WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_LAYERED,
 		wndClass,
 		L"bloonl",
-		WS_POPUP,
+		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		200,
 		70,
@@ -118,6 +120,6 @@ void BalloonWindow::Show(std::wstring text) // TODO: rsrs
 {
 }
 
-void BalloonWindow::PaceUpdate() // TODO: rsrs
+void BalloonWindow::PaceUpdate() // TODO: favor me implementar fazem 3 meses que eu estou aqui
 {
 }
