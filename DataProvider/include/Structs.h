@@ -148,8 +148,12 @@ struct BitmapInfoHeader {
 
 struct IconImage {
 	BitmapInfoHeader IconHeader{};
-	RGBQuad* ColorTable{};
-	byte* Data{};
+
+	std::shared_ptr<RGBQuad> ColorTable{};
+	std::shared_ptr<byte> PixelData;
+
+	// é a informação crua, usada se for carregada como bitmap por um subsistema (tipo o gdi)
+	std::shared_ptr<byte> RawData{};
 };
 
 struct TrayIcon {
@@ -204,6 +208,7 @@ struct CharacterInfo {
 	CharacterFlags Flags{};
 	ushort AnimationMajorVersion{};
 	ushort AnimationMinorVersion{};
+	bool HasTrayIcon{};
 	VoiceInfo VoiceInfo{};
 	ExtraVoiceInfo AdditionalVoiceInfo{};
 	BalloonInfo BalloonInfo{};

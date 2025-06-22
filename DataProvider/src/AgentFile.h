@@ -74,7 +74,7 @@ private:
 	void ReadCharInfo(ACSLocator* pos);
 	void ReadVoiceInfo();
 	void ReadBalloonInfo();
-	IconImage ReadIconImage();
+	IconImage ReadIconImage(int dataSize);
 	void ReadAnimationPointers(ACSLocator* pos);
 	void ReadImagePointers(ACSLocator* pos);
 	void ReadAudioPointers(ACSLocator* pos);

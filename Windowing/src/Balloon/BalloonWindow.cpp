@@ -86,7 +86,7 @@ void BalloonWindow::InternalSetup(CharacterInfo ci, std::promise<int>& prom)
 		WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_LAYERED,
 		wndClass,
 		L"bloonl",
-		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+		WS_CAPTION | WS_VISIBLE,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		200,
 		70,

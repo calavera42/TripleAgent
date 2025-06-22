@@ -124,6 +124,17 @@ void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<in
 	wc.hInstance = hInstDll;
 	wc.lpszClassName = wndClass;
 
+	if (ci.HasTrayIcon) 
+	{
+		TrayIcon ty = af->GetAgentIcon();
+		IconImage colorImg = ty.ColorBitmapData;
+		IconImage maskImg = ty.MaskBitmapData;
+
+		HICON hi = CreateIcon(hInstDll, colorImg.IconHeader.Width, colorImg.IconHeader.Height, colorImg.IconHeader.Planes, colorImg.IconHeader.BitsPerPixel, colorImg.RawData.get(), maskImg.RawData.get());
+
+		wc.hIcon = hi;
+	}
+
 	if (!RegisterClass(&wc))
 	{
 		prom.set_value(1);
@@ -206,29 +217,29 @@ void AgentWindow::ProcessAgentUpdate()
 
 	switch (ui.Type) 
 	{
-	case EventType::AgentVisibleChange:
-		ShowWindow(Handle, std::get<bool>(ui.Data) ? SW_SHOW : SW_HIDE);
-		break;
-	case EventType::AgentFrameChange:
-	{
-		CurFrame = std::get<std::shared_ptr<FrameInfo>>(ui.Data);
-		TriggerAgentRedraw();
-		break;
-	}
-	case EventType::AgentMoveWindow:
-	{
-		AgPoint targetPos = std::get<AgPoint>(ui.Data);
-		SetWindowPos(Handle, NULL, targetPos.X, targetPos.Y, -1, -1, SWP_NOSIZE | SWP_NOZORDER);
-		break;
-	}
-	case EventType::AgentMouthChange:
-	{
-		CurMouth = std::get<MouthOverlayType>(ui.Data);
-		TriggerAgentRedraw();
-		break;
-	}
-	default:
-		break;
+		case EventType::AgentVisibleChange:
+			ShowWindow(Handle, std::get<bool>(ui.Data) ? SW_SHOW : SW_HIDE);
+			break;
+		case EventType::AgentFrameChange:
+		{
+			CurFrame = std::get<std::shared_ptr<FrameInfo>>(ui.Data);
+			TriggerAgentRedraw();
+			break;
+		}
+		case EventType::AgentMoveWindow:
+		{
+			AgPoint targetPos = std::get<AgPoint>(ui.Data);
+			SetWindowPos(Handle, NULL, targetPos.X, targetPos.Y, -1, -1, SWP_NOSIZE | SWP_NOZORDER);
+			break;
+		}
+		case EventType::AgentMouthChange:
+		{
+			CurMouth = std::get<MouthOverlayType>(ui.Data);
+			TriggerAgentRedraw();
+			break;
+		}
+		default:
+			break;
 	}
 }
 

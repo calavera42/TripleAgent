@@ -118,8 +118,6 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 	JumpTo(pos->Offset, Stream);
 
 	ACSLocator localizedInfo = {};
-	byte transparentColorIndex = 0;
-	bool trayIconEnabled = false;
 
 	ReadTo(CharInfo.MinorVersion, Stream);
 	ReadTo(CharInfo.MajorVersion, Stream);
@@ -137,15 +135,15 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 
 	CharInfo.ColorTable = ReadVector<uint, RGBQuad>(Stream, NULL);
 
-	ReadTo(trayIconEnabled, Stream);
+	ReadTo(CharInfo.HasTrayIcon, Stream);
 
-	if (trayIconEnabled) 
+	if (CharInfo.HasTrayIcon)
 	{
 		ReadTo(AgentIcon.SizeOfMaskData, Stream);
-		AgentIcon.MaskBitmapData = ReadIconImage();
+		AgentIcon.MaskBitmapData = ReadIconImage(AgentIcon.SizeOfMaskData);
 
 		ReadTo(AgentIcon.SizeOfColorData, Stream);
-		AgentIcon.ColorBitmapData = ReadIconImage();
+		AgentIcon.ColorBitmapData = ReadIconImage(AgentIcon.SizeOfColorData);
 	}
 
 	std::vector<StateInfo> states = ReadVector<ushort, StateInfo>(Stream, [](std::ifstream& str) -> StateInfo {
@@ -238,15 +236,17 @@ LocalizedInfo AgentFile::GetLocalizedInfo(ushort langId)
 	return LocalizationInfo[langId];
 }
 
-IconImage AgentFile::ReadIconImage() // leitura obrigatória: https://devblogs.microsoft.com/oldnewthing/20101018-00/?p=12513
+IconImage AgentFile::ReadIconImage(int dataSize) // leitura obrigatória: https://devblogs.microsoft.com/oldnewthing/20101018-00/?p=12513
 {
 	IconImage iconImage = {};
 
 	ReadTo(iconImage.IconHeader, Stream);
 	iconImage.IconHeader.ColorUsed = 1 << (iconImage.IconHeader.BitsPerPixel * iconImage.IconHeader.Planes);
 
-	iconImage.ColorTable = ReadElements<RGBQuad>(Stream, iconImage.IconHeader.ColorUsed);
-	iconImage.Data = ReadElements<byte>(Stream, iconImage.IconHeader.SizeOfImageData);
+	iconImage.ColorTable = std::shared_ptr<RGBQuad>((RGBQuad*)calloc(iconImage.IconHeader.ColorUsed, sizeof(RGBQuad)), free);
+	iconImage.PixelData = std::shared_ptr<byte>((byte*)calloc(iconImage.IconHeader.SizeOfImageData, sizeof(RGBQuad)), free);
+
+	iconImage.RawData = std::shared_ptr<byte>((byte*)malloc(dataSize - iconImage.IconHeader.StructSize));
 
 	return iconImage;
 }
