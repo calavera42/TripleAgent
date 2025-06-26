@@ -10,7 +10,7 @@ int main()
 	IAgentWindow* aw = CreateAgentWindow();
 	IBalloonWindow* ibw = CreateBalloonWindow();
 
-	af->Load("d:/desktop/merlin.acs");
+	af->Load("d:/desktop/peedy.acs");
 
 	AnimationInfo ai = af->GetAnimationInfo(L"restpose");
 	CharacterInfo ci = af->GetCharacterInfo();

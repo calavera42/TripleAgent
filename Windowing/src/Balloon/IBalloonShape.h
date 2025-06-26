@@ -20,8 +20,5 @@ struct BalloonShapeInfo {
 class IBalloonShape 
 {
 public:
-
-	void Paint(Gdiplus::Graphics* g, BalloonShapeInfo bsi);
-
-	
+	virtual void Paint(Gdiplus::Graphics* g, BalloonShapeInfo bsi) = 0;
 };

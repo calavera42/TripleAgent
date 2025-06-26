@@ -53,6 +53,6 @@ public:
 	uint16_t GetWidth() override;
 	uint16_t GetHeight() override;
 	bool IsVisible() override;
-	bool UpdateState(Event info) override;
+	void UpdateState(Event info) override;
 	Event QueryInfo() override;
 };

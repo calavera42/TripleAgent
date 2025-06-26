@@ -40,7 +40,7 @@ LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 			AgPoint p = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 			Event ev = {};
 
-			ev.Type = (EventType)(uMsg & 0xFF);
+			ev.Type = (EventType)(uMsg & 0xFF); // se deus quiser a especificação não muda
 			ev.Data = p;
 
 			assert(ev.Type != EventType::WindowDragStart); // imagina q chato q seria
@@ -111,11 +111,9 @@ void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<in
 
 	const wchar_t wndClass[] = L"agntwndclss";
 
-	bool windowHasMenu = false;
-	int windowStyle = WS_CAPTION | (windowHasMenu ? WS_SYSMENU : 0);
+	int windowStyle = WS_CAPTION | WS_SYSMENU;
 	int windowExStyle = WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_LAYERED;
 
-	// FIXME: talvez seja interessante usar a cor de transparência do agente aqui
 	uint32_t bckgColor = 0x00FF00FF; // magenta monamour
 
 	WNDCLASS wc = {};
@@ -124,13 +122,21 @@ void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<in
 	wc.hInstance = hInstDll;
 	wc.lpszClassName = wndClass;
 
-	if (ci.HasTrayIcon) 
+	if (ci.HasTrayIcon && false) // HACK: infelizmente n funciona rsxd
 	{
 		TrayIcon ty = af->GetAgentIcon();
 		IconImage colorImg = ty.ColorBitmapData;
 		IconImage maskImg = ty.MaskBitmapData;
 
-		HICON hi = CreateIcon(hInstDll, colorImg.IconHeader.Width, colorImg.IconHeader.Height, colorImg.IconHeader.Planes, colorImg.IconHeader.BitsPerPixel, colorImg.RawData.get(), maskImg.RawData.get());
+		HICON hi = CreateIcon(
+			hInstDll,
+			colorImg.IconHeader.Width,
+			colorImg.IconHeader.Height,
+			colorImg.IconHeader.Planes,
+			colorImg.IconHeader.BitsPerPixel,
+			(byte*)colorImg.ColorTable.get(),
+			maskImg.RawData.get()
+		);
 
 		wc.hIcon = hi;
 	}
@@ -148,7 +154,7 @@ void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<in
 		ci.Height
 	};
 
-	AdjustWindowRectEx(&windowRect, windowStyle, windowHasMenu, windowExStyle);
+	AdjustWindowRectEx(&windowRect, windowStyle, false, windowExStyle);
 
 	HWND hwnd = CreateWindowEx(
 		windowExStyle,
@@ -183,12 +189,10 @@ void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<in
 	MessageLoop();
 }
 
-bool AgentWindow::UpdateState(Event info)
+void AgentWindow::UpdateState(Event info)
 {
 	std::lock_guard<std::mutex> lock(AgentQueueMutex);
 	AgentUpdateQueue.push(info);
-
-	return AgentUpdateQueue.size() <= 10;
 }
 
 Event AgentWindow::GetAgentUpdate()
@@ -229,7 +233,15 @@ void AgentWindow::ProcessAgentUpdate()
 		case EventType::AgentMoveWindow:
 		{
 			AgPoint targetPos = std::get<AgPoint>(ui.Data);
-			SetWindowPos(Handle, NULL, targetPos.X, targetPos.Y, -1, -1, SWP_NOSIZE | SWP_NOZORDER);
+			SetWindowPos(
+				Handle, 
+				NULL, 
+				targetPos.X, 
+				targetPos.Y, 
+				-1, -1, 
+				SWP_NOSIZE | 
+				SWP_NOZORDER
+			);
 			break;
 		}
 		case EventType::AgentMouthChange:

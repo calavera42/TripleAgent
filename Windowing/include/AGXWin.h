@@ -46,7 +46,7 @@ public:
 	virtual uint16_t GetWidth() = 0;
 	virtual uint16_t GetHeight() = 0;
 	virtual bool IsVisible() = 0;
-	virtual bool UpdateState(Event info) = 0;
+	virtual void UpdateState(Event info) = 0;
 	virtual Event QueryInfo() = 0;
 };
 

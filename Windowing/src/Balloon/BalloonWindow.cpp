@@ -74,7 +74,7 @@ void BalloonWindow::InternalSetup(CharacterInfo ci, std::promise<int>& prom)
 	wc.lpfnWndProc = (WNDPROC)IntWindowProc;
 	wc.hInstance = hInstDll;
 	wc.lpszClassName = wndClass;
-	wc.hbrBackground = CreateSolidBrush(0x00880000);
+	wc.hbrBackground = CreateSolidBrush(0x00000088);
 
 	if (!RegisterClass(&wc))
 	{
@@ -85,7 +85,7 @@ void BalloonWindow::InternalSetup(CharacterInfo ci, std::promise<int>& prom)
 	Handle = CreateWindowEx(
 		WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_LAYERED,
 		wndClass,
-		L"bloonl",
+		L"bloon",
 		WS_CAPTION | WS_VISIBLE,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		200,
@@ -104,7 +104,7 @@ void BalloonWindow::InternalSetup(CharacterInfo ci, std::promise<int>& prom)
 	Width = 200;
 	Height = 70;
 
-	SetLayeredWindowAttributes(Handle, 0x00880000, 255, LWA_COLORKEY);
+	SetLayeredWindowAttributes(Handle, 0x00000088, 255, LWA_COLORKEY);
 
 	prom.set_value(0);
 

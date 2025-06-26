@@ -240,13 +240,23 @@ IconImage AgentFile::ReadIconImage(int dataSize) // leitura obrigatória: https:/
 {
 	IconImage iconImage = {};
 
+
 	ReadTo(iconImage.IconHeader, Stream);
 	iconImage.IconHeader.ColorUsed = 1 << (iconImage.IconHeader.BitsPerPixel * iconImage.IconHeader.Planes);
 
-	iconImage.ColorTable = std::shared_ptr<RGBQuad>((RGBQuad*)calloc(iconImage.IconHeader.ColorUsed, sizeof(RGBQuad)), free);
-	iconImage.PixelData = std::shared_ptr<byte>((byte*)calloc(iconImage.IconHeader.SizeOfImageData, sizeof(RGBQuad)), free);
+	size_t colorTableSize = iconImage.IconHeader.ColorUsed * sizeof(RGBQuad);
+	size_t pixelDataSize = iconImage.IconHeader.SizeOfImageData;
+	size_t rawDataSize = dataSize - iconImage.IconHeader.StructSize;
 
-	iconImage.RawData = std::shared_ptr<byte>((byte*)malloc(dataSize - iconImage.IconHeader.StructSize));
+	iconImage.ColorTable = std::shared_ptr<RGBQuad>((RGBQuad*)malloc(colorTableSize), free);
+	iconImage.PixelData = std::shared_ptr<byte>((byte*)malloc(pixelDataSize), free);
+
+	iconImage.RawData = std::shared_ptr<byte>((byte*)malloc(rawDataSize));
+
+	Stream.read((char*)iconImage.RawData.get(), rawDataSize);
+
+	memcpy(iconImage.ColorTable.get(), iconImage.RawData.get(), colorTableSize);
+	memcpy(iconImage.PixelData.get(), iconImage.PixelData.get(), pixelDataSize);
 
 	return iconImage;
 }

@@ -4,8 +4,8 @@ using namespace Gdiplus;
 
 void AgentRendering::Setup(IAgentFile* file)
 {
-	GdiplusStartupInput gdiStart;
-	ULONG_PTR gdiToken;
+	GdiplusStartupInput gdiStart = {};
+	ULONG_PTR gdiToken = {};
 	GdiplusStartup(&gdiToken, &gdiStart, nullptr);
 
 	AgFile = file;
@@ -46,6 +46,7 @@ void AgentRendering::DrawFrame(Gdiplus::Graphics* g, uint frameIndex, int offset
 {
 	ImageAttributes imgAttr = {};
 	CharacterInfo ci = AgFile->GetCharacterInfo();
+
 	RGBQuad rq = ci.ColorTable[ci.TransparencyIndex];
 
 	imgAttr.SetColorKey(
@@ -70,7 +71,7 @@ Gdiplus::ColorPalette* AgentRendering::CreatePalette(std::vector<RGBQuad> colorP
 	ColorPalette* cp = (ColorPalette*)malloc(structSize);
 
 	if (!cp)
-		throw std::runtime_error("Falha ao alocar paleta do personagem, memória insuficiente.");
+		throw std::runtime_error("AgentRendering::CreatePalette : Falha ao alocar paleta do personagem, memória insuficiente.");
 
 	memset(cp, 0, structSize);
 
