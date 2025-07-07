@@ -240,7 +240,6 @@ IconImage AgentFile::ReadIconImage(int dataSize) // leitura obrigatória: https:/
 {
 	IconImage iconImage = {};
 
-
 	ReadTo(iconImage.IconHeader, Stream);
 	iconImage.IconHeader.ColorUsed = 1 << (iconImage.IconHeader.BitsPerPixel * iconImage.IconHeader.Planes);
 
@@ -251,12 +250,12 @@ IconImage AgentFile::ReadIconImage(int dataSize) // leitura obrigatória: https:/
 	iconImage.ColorTable = std::shared_ptr<RGBQuad>((RGBQuad*)malloc(colorTableSize), free);
 	iconImage.PixelData = std::shared_ptr<byte>((byte*)malloc(pixelDataSize), free);
 
-	iconImage.RawData = std::shared_ptr<byte>((byte*)malloc(rawDataSize));
+	iconImage.RawData = std::shared_ptr<byte>((byte*)malloc(rawDataSize)); // repensar isso ner gatah
 
 	Stream.read((char*)iconImage.RawData.get(), rawDataSize);
 
 	memcpy(iconImage.ColorTable.get(), iconImage.RawData.get(), colorTableSize);
-	memcpy(iconImage.PixelData.get(), iconImage.PixelData.get(), pixelDataSize);
+	memcpy(iconImage.PixelData.get(), iconImage.RawData.get() + colorTableSize, pixelDataSize);
 
 	return iconImage;
 }
@@ -269,7 +268,7 @@ void AgentFile::ReadAnimationPointers(ACSLocator* pos)
 		anim.AnimationName = ReadString(str);
 		ReadTo(anim.InfoLocation, str);
 
-		std::transform(anim.AnimationName.begin(), anim.AnimationName.end(), anim.AnimationName.begin(), std::tolower);
+		NormalizeString(anim.AnimationName);
 		return anim;
 	});
 

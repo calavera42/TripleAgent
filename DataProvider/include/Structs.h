@@ -227,3 +227,8 @@ struct ImageData {
 	std::shared_ptr<byte> Data{};
 	size_t Size{};
 };
+
+struct AgPoint {
+	int32_t X;
+	int32_t Y;
+};

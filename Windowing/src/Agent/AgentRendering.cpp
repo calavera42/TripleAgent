@@ -9,13 +9,37 @@ void AgentRendering::Setup(IAgentFile* file)
 	GdiplusStartup(&gdiToken, &gdiStart, nullptr);
 
 	AgFile = file;
-	CharacterInfo charInfo = file->GetCharacterInfo();
+	CharInfo = file->GetCharacterInfo();
 
-	AgentPalette = CreatePalette(charInfo.ColorTable);
+	AgentPalette = CreatePalette(CharInfo.ColorTable);
 }
 
-void AgentRendering::Paint(Gdiplus::Graphics* g, std::shared_ptr<FrameInfo> curFrame, MouthOverlayType overlay)
+void AgentRendering::Paint(HWND hwnd, std::shared_ptr<FrameInfo> curFrame, MouthOverlayType overlay)
 {
+	HDC hdc = GetDC(hwnd);
+	HDC memDC = CreateCompatibleDC(hdc);
+	SIZE wndSize = {
+		CharInfo.Width,
+		CharInfo.Height
+	};
+	HBITMAP memBitmap = CreateCompatibleBitmap(hdc, wndSize.cx, wndSize.cy);
+
+	SelectObject(memDC, memBitmap);
+
+	Graphics g(memDC);
+
+	g.Clear(Color(0, 0, 0, 0));
+
+	HDC screenDC = GetDC(NULL);
+	POINT ptSrc = { 0, 0 };
+	POINT ptDst = { 0, 0 };
+
+	BLENDFUNCTION blendFunction = {};
+	blendFunction.AlphaFormat = AC_SRC_ALPHA;
+	blendFunction.BlendFlags = 0;
+	blendFunction.BlendOp = AC_SRC_OVER;
+	blendFunction.SourceConstantAlpha = 255;
+
 	bool drawOverlay = !curFrame->Overlays.empty() && overlay != MouthOverlayType::Closed;
 	OverlayInfo oi;
 
@@ -30,11 +54,28 @@ void AgentRendering::Paint(Gdiplus::Graphics* g, std::shared_ptr<FrameInfo> curF
 
 		FrameImage fi = curFrame->Images[i];
 
-		DrawFrame(g, fi.ImageIndex, fi.OffsetX, fi.OffsetY);
+		DrawFrame(&g, fi.ImageIndex, fi.OffsetX, fi.OffsetY);
 	}
 
 	if (drawOverlay)
-		DrawFrame(g, oi.ImageIndex, oi.OffsetX, oi.OffsetY);
+		DrawFrame(&g, oi.ImageIndex, oi.OffsetX, oi.OffsetY);
+
+	UpdateLayeredWindow(
+		hwnd,
+		screenDC,
+		nullptr,
+		&wndSize,
+		memDC,
+		&ptSrc,
+		0,
+		&blendFunction,
+		ULW_ALPHA
+	);
+
+	DeleteDC(memDC);
+	DeleteObject(memBitmap);
+	ReleaseDC(hwnd, hdc);
+	ReleaseDC(hwnd, screenDC);
 }
 
 AgentRendering::~AgentRendering()

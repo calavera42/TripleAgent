@@ -11,7 +11,7 @@
 #include <functional>
 #include <variant>
 
-#include "../../DataProvider/include/agxdpv.h"
+#include <agxdpv.h>
 
 enum class EventType : uint8_t
 {
@@ -24,37 +24,50 @@ enum class EventType : uint8_t
 	WindowMouseRUp,
 	WindowDragEnd,
 
+	BalloonWindowHidden,
+
+	AgentBalloonShow,
+	AgentBalloonHide,
+	AgentBalloonAttach,
+	AgentBalloonPace,
+
 	AgentFrameChange,
 	AgentMouthChange,
 	AgentMoveWindow,
 	AgentVisibleChange
 };
 
-struct AgPoint {
-	int32_t X;
-	int32_t Y;
-};
-
 struct Event {
 	EventType Type{};
-	std::variant<std::shared_ptr<FrameInfo>, MouthOverlayType, AgPoint, bool> Data{};
+	std::variant<
+		std::shared_ptr<FrameInfo>, 
+		MouthOverlayType, 
+		AgPoint, 
+		bool, 
+		string, 
+		int, 
+		AgRect> Data{};
 };
 
 class IAgentWindow {
 public:
 	virtual int Setup(IAgentFile* af, uint16_t langid = 0x416) = 0;
-	virtual uint16_t GetWidth() = 0;
-	virtual uint16_t GetHeight() = 0;
+	virtual AgPoint GetSize() = 0;
+	virtual AgPoint GetPos() = 0;
 	virtual bool IsVisible() = 0;
+
 	virtual void UpdateState(Event info) = 0;
-	virtual Event QueryInfo() = 0;
+	virtual Event QueryEvent() = 0;
 };
 
 class IBalloonWindow {
 public:
+	// TODO: dar a opção de modificar o tamanho da fonte 
+	// (já q a info passada pelo balloon info é inútil)
 	virtual int Setup(CharacterInfo ci) = 0;
-	virtual void Show(std::wstring text) = 0;
-	virtual void PaceUpdate() = 0;
+
+	virtual void UpdateState(Event e) = 0;
+	virtual Event QueryEvent() = 0;
 };
 
 extern "C" AGENT_WIN IAgentWindow* CreateAgentWindow();

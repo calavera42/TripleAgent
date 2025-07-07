@@ -11,23 +11,11 @@ LRESULT AgentWindow::IntWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
-
+// TODO: consertar o evento de click
 LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg) 
 	{
-		case WM_PAINT: 
-		{
-			PAINTSTRUCT ps;
-			HDC hdc = BeginPaint(hwnd, &ps);
-
-			Graphics screen(hdc);
-
-			screen.DrawImage(ScreenBuffer.get(), 0, 0);
-			EndPaint(hwnd, &ps);
-			break;
-		}
-
 		case WM_CLOSE:
 			PostQuitMessage(0);
 			break;
@@ -49,6 +37,20 @@ LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 			break;
 		}
 
+		case WM_NCHITTEST:
+		{
+			LRESULT lr = DefWindowProc(hwnd, uMsg, wParam, lParam);
+			int xPos = GET_X_LPARAM(lParam);
+			int yPos = GET_Y_LPARAM(lParam);
+
+
+			if (lr == HTCLIENT)
+			{
+				return HTCAPTION;
+			}
+
+			break;
+		}
 		case WM_MOVING:
 		{
 			if (WindowStartDragging)
@@ -103,43 +105,21 @@ void AgentWindow::MessageLoop()
 	}
 }
 
+// TODO: carregar o ícone do agente
 void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<int>& prom)
 {
 	CharacterInfo ci = af->GetCharacterInfo();
-
-	AgRender.Setup(af);
 
 	const wchar_t wndClass[] = L"agntwndclss";
 
 	int windowStyle = WS_CAPTION | WS_SYSMENU;
 	int windowExStyle = WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_LAYERED;
 
-	uint32_t bckgColor = 0x00FF00FF; // magenta monamour
-
 	WNDCLASS wc = {};
 
 	wc.lpfnWndProc = (WNDPROC)IntWindowProc;
 	wc.hInstance = hInstDll;
 	wc.lpszClassName = wndClass;
-
-	if (ci.HasTrayIcon && false) // HACK: infelizmente n funciona rsxd
-	{
-		TrayIcon ty = af->GetAgentIcon();
-		IconImage colorImg = ty.ColorBitmapData;
-		IconImage maskImg = ty.MaskBitmapData;
-
-		HICON hi = CreateIcon(
-			hInstDll,
-			colorImg.IconHeader.Width,
-			colorImg.IconHeader.Height,
-			colorImg.IconHeader.Planes,
-			colorImg.IconHeader.BitsPerPixel,
-			(byte*)colorImg.ColorTable.get(),
-			maskImg.RawData.get()
-		);
-
-		wc.hIcon = hi;
-	}
 
 	if (!RegisterClass(&wc))
 	{
@@ -179,12 +159,10 @@ void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<in
 	Height = ci.Height;
 
 	Handle = hwnd;
-	
-	SetLayeredWindowAttributes(Handle, bckgColor, 0xFF, LWA_COLORKEY);
-
-	ScreenBuffer = std::make_shared<Gdiplus::Bitmap>(Width, Height);
 
 	prom.set_value(0);
+
+	AgRender.Setup(af);
 
 	MessageLoop();
 }
@@ -227,7 +205,7 @@ void AgentWindow::ProcessAgentUpdate()
 		case EventType::AgentFrameChange:
 		{
 			CurFrame = std::get<std::shared_ptr<FrameInfo>>(ui.Data);
-			TriggerAgentRedraw();
+			AgRender.Paint(Handle, CurFrame, CurMouth);
 			break;
 		}
 		case EventType::AgentMoveWindow:
@@ -247,22 +225,12 @@ void AgentWindow::ProcessAgentUpdate()
 		case EventType::AgentMouthChange:
 		{
 			CurMouth = std::get<MouthOverlayType>(ui.Data);
-			TriggerAgentRedraw();
+			AgRender.Paint(Handle, CurFrame, CurMouth);
 			break;
 		}
 		default:
 			break;
 	}
-}
-
-void AgentWindow::TriggerAgentRedraw(AgRect* r)
-{
-	Gdiplus::Graphics g(ScreenBuffer.get());
-
-	g.Clear(Gdiplus::Color(255, 255, 0, 255));
-	AgRender.Paint(&g, CurFrame, CurMouth);
-
-	InvalidateRect(Handle, (RECT*)r, TRUE);
 }
 
 int AgentWindow::Setup(IAgentFile* af, uint16_t langId)
@@ -277,22 +245,12 @@ int AgentWindow::Setup(IAgentFile* af, uint16_t langId)
 	return future.get();
 }
 
-uint16_t AgentWindow::GetWidth()
-{
-	return Width;
-}
-
-uint16_t AgentWindow::GetHeight()
-{
-	return Height;
-}
-
 bool AgentWindow::IsVisible()
 {
 	return IsWindowVisible(Handle);
 }
 
-Event AgentWindow::QueryInfo()
+Event AgentWindow::QueryEvent()
 {
 	std::lock_guard<std::mutex> lock(WindowEventsMutex);
 
@@ -303,4 +261,18 @@ Event AgentWindow::QueryInfo()
 	WindowEventsQueue.pop();
 
 	return e;
+}
+
+AgPoint AgentWindow::GetSize()
+{
+	return AgPoint{ Width, Height };
+}
+
+AgPoint AgentWindow::GetPos()
+{
+	RECT r = {};
+
+	GetWindowRect(Handle, &r);
+
+	return AgPoint{ r.left, r.top };
 }

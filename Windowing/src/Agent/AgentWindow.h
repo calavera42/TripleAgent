@@ -5,12 +5,14 @@
 
 #include <windows.h>
 #include <windowsx.h>
+#include <gdiplus.h>
+
 #include <cassert>
 #include <thread>
 #include <future>
-#include <inttypes.h>
-#include <gdiplus.h>
 #include <queue>
+
+#include <inttypes.h>
 
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define hInstDll ((HINSTANCE)&__ImageBase)
@@ -24,7 +26,6 @@ private:
 	HWND Handle = nullptr;
 
 	AgentRendering AgRender{};
-	std::shared_ptr<Gdiplus::Bitmap> ScreenBuffer;
 
 	std::shared_ptr<FrameInfo> CurFrame;
 	MouthOverlayType CurMouth;
@@ -45,14 +46,12 @@ private:
 	Event GetAgentUpdate();
 	void PushWindowEvent(Event e);
 	void ProcessAgentUpdate();
-	void TriggerAgentRedraw(AgRect* r = nullptr);
 
 public:
-
 	int Setup(IAgentFile* f, uint16_t langid = 0x416) override;
-	uint16_t GetWidth() override;
-	uint16_t GetHeight() override;
 	bool IsVisible() override;
 	void UpdateState(Event info) override;
-	Event QueryInfo() override;
+	Event QueryEvent() override;
+	AgPoint GetSize() override;
+	AgPoint GetPos() override;
 };

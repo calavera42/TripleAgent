@@ -30,6 +30,9 @@
     <ClCompile Include="src\Balloon\BalloonWindow.cpp">
       <Filter>Arquivos de Origem</Filter>
     </ClCompile>
+    <ClCompile Include="src\Balloon\BalloonRendering\SpeechBalloonRenderer.cpp">
+      <Filter>Arquivos de Origem</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Agent\AgentWindow.h">
@@ -44,7 +47,10 @@
     <ClInclude Include="src\Balloon\BalloonWindow.h">
       <Filter>Arquivos de Cabeçalho</Filter>
     </ClInclude>
-    <ClInclude Include="src\Balloon\IBalloonShape.h">
+    <ClInclude Include="src\Balloon\BalloonRendering\IBalloonRenderer.h">
+      <Filter>Arquivos de Cabeçalho</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Balloon\BalloonRendering\SpeechBalloonRenderer.h">
       <Filter>Arquivos de Cabeçalho</Filter>
     </ClInclude>
   </ItemGroup>
