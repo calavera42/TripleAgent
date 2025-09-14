@@ -2,17 +2,17 @@
 
 using namespace Gdiplus;
 
+// TODO: dar a opção de modificar o tamanho da fonte
 void SpeechBalloonRenderer::Setup(CharacterInfo& ci)
 {
-    GdiplusStartupInput gdiStart = {};
-    GdiplusStartup(&GdiToken, &gdiStart, nullptr);
-
     Style = ci.BalloonInfo;
     CharFlags = ci.Flags;
 
+    int fontSize = -MulDiv(Style.FontHeight, GetDeviceCaps(GetDC(NULL), LOGPIXELSY), 72);
+
     // nem vale a pena tentar carregar as fontes dos agentes, a maioria nem existe mais
-    AgFntFamily = new FontFamily(L"Arial");
-    AgFont = new Font(AgFntFamily, 15, FontStyleRegular, UnitPixel);
+    AgFntFamily = new FontFamily(L"arial");
+    AgFont = new Font(AgFntFamily, fontSize, FontStyleRegular, UnitPixel);
 
     int lineSpacing = 
         AgFont->GetSize()
@@ -59,11 +59,13 @@ void SpeechBalloonRenderer::Paint(HWND hwnd, BalloonRenderInfo bri)
 {
     SizeF textSize = GetTextSize(bri.Text, MaxSize);
     StringFormat sf;
+
+    // TODO: a minha indecisão me mata, se for fazer o mínimo do balão seguir a especificação lembrar de mudar aq e no getsize.
     Rect bodyBounds = {
         0, 
         0,
-        (int)ceil(textSize.Width) + SBCornerSpacing * 2, 
-        (int)ceil(textSize.Height) + SBCornerSpacing * 2
+        (int)round(textSize.Width) + SBCornerSpacingX * 2,
+        (int)round(textSize.Height) + SBCornerSpacingY * 2
     };
     Point lookupSkews[4] = { // usado para compensar pela ponta do balão de fala
         { 0, SBTipDepth }, // cima
@@ -106,7 +108,7 @@ void SpeechBalloonRenderer::Paint(HWND hwnd, BalloonRenderInfo bri)
     blendFunction.SourceConstantAlpha = 255;
 
     g.SetSmoothingMode(SmoothingModeHighQuality);
-    g.SetTextRenderingHint(TextRenderingHintAntiAliasGridFit);
+    g.SetTextRenderingHint(TextRenderingHintSingleBitPerPixelGridFit);
 
     // renderização começa aq
 
@@ -114,14 +116,16 @@ void SpeechBalloonRenderer::Paint(HWND hwnd, BalloonRenderInfo bri)
 
     DrawShape(&g, bodyBounds, bri.TipOffsetInLine, bri.TipQuad);
 
-    g.DrawString(
+    Pen p = Pen(Color(0, 255, 0), 1.0f);
+
+    int stts = g.DrawString(
         bri.Text.c_str(), 
         bri.SpeechProgress,
         AgFont, 
         RectF
         {
-            (float)bodyBounds.X + SBCornerSpacing,
-            (float)bodyBounds.Y + SBCornerSpacing,
+            (float)bodyBounds.X + SBCornerSpacingX,
+            (float)bodyBounds.Y + SBCornerSpacingY,
             MaxSize.Width, 
             MaxSize.Height 
         }, 
@@ -162,42 +166,54 @@ void SpeechBalloonRenderer::Paint(HWND hwnd, BalloonRenderInfo bri)
 void SpeechBalloonRenderer::DrawShape(Gdiplus::Graphics* g, Gdiplus::Rect bodyBounds, int tipOffsetInLine, TipQuadrant tq)
 {
     GraphicsPath gp(FillModeWinding);
-    int tipMiddle = tq == TipQuadrant::Top || tq == TipQuadrant::Bottom ? SBTipMiddle : 0;
 
-    tipOffsetInLine -= tipMiddle + SBCornerSpacing;
+    // default pro TipQuadrant::Left e TipQuadrant::Right
+    int tipMiddle = 0;
+    int tipEdgeSize = bodyBounds.Height;
+    int cornerSpacing = SBCornerSpacingY;
+
+    if (tq == TipQuadrant::Top || tq == TipQuadrant::Bottom) 
+    {
+        tipMiddle = SBTipMiddle;
+        tipEdgeSize = bodyBounds.Width;
+        cornerSpacing = SBCornerSpacingX;
+    }
+
+    tipOffsetInLine -= SBTipSpacing + SBTipMiddle + cornerSpacing;
     tipOffsetInLine = max(tipOffsetInLine, 0);
+    tipOffsetInLine = min(tipOffsetInLine + cornerSpacing, tipEdgeSize - cornerSpacing * 2 - SBTipSpacing);
 
     Rect arcRects[4] = {
-        { bodyBounds.X, bodyBounds.Y, SBCornerDiameter, SBCornerDiameter },
-        { bodyBounds.GetRight() - SBCornerDiameter, bodyBounds.Y, SBCornerDiameter, SBCornerDiameter },
-        { bodyBounds.GetRight() - SBCornerDiameter, bodyBounds.GetBottom() - SBCornerDiameter, SBCornerDiameter, SBCornerDiameter },
-        { bodyBounds.X, bodyBounds.GetBottom() - SBCornerDiameter, SBCornerDiameter, SBCornerDiameter }
+        { bodyBounds.X, bodyBounds.Y, SBCornerDiameterX, SBCornerDiameterY },
+        { bodyBounds.GetRight() - SBCornerDiameterX, bodyBounds.Y, SBCornerDiameterX, SBCornerDiameterY },
+        { bodyBounds.GetRight() - SBCornerDiameterX, bodyBounds.GetBottom() - SBCornerDiameterY, SBCornerDiameterX, SBCornerDiameterY },
+        { bodyBounds.X, bodyBounds.GetBottom() - SBCornerDiameterY, SBCornerDiameterX, SBCornerDiameterY }
     };
 
     Point tipPoints[4][3] = {
         // CIMA
         {
-            { bodyBounds.X + SBCornerSpacing + tipOffsetInLine, bodyBounds.Y },
-            { bodyBounds.X + SBCornerSpacing + tipOffsetInLine + tipMiddle, bodyBounds.Y - SBTipDepth },
-            { bodyBounds.X + SBCornerSpacing + tipOffsetInLine + SBTipSpacing, bodyBounds.Y }
+            { bodyBounds.X + SBCornerSpacingX + tipOffsetInLine, bodyBounds.Y },
+            { bodyBounds.X + SBCornerSpacingX + tipOffsetInLine + tipMiddle, bodyBounds.Y - SBTipDepth },
+            { bodyBounds.X + SBCornerSpacingX + tipOffsetInLine + SBTipSpacing, bodyBounds.Y }
         },
         // DIREITA
         {
-            { bodyBounds.GetRight(), bodyBounds.Y + SBCornerSpacing + tipOffsetInLine },
-            { bodyBounds.GetRight() + SBTipDepth, bodyBounds.Y + SBCornerSpacing + tipOffsetInLine + tipMiddle },
-            { bodyBounds.GetRight(), bodyBounds.Y + SBCornerSpacing + tipOffsetInLine + SBTipSpacing },
+            { bodyBounds.GetRight(), bodyBounds.Y + SBCornerSpacingY + tipOffsetInLine },
+            { bodyBounds.GetRight() + SBTipDepth, bodyBounds.Y + SBCornerSpacingY + tipOffsetInLine + tipMiddle },
+            { bodyBounds.GetRight(), bodyBounds.Y + SBCornerSpacingY + tipOffsetInLine + SBTipSpacing },
         },
         // BAIXO
         {
-            { bodyBounds.X + SBCornerSpacing + tipOffsetInLine + SBTipSpacing, bodyBounds.GetBottom() },
-            { bodyBounds.X + SBCornerSpacing + tipOffsetInLine + tipMiddle, bodyBounds.GetBottom() + SBTipDepth },
-            { bodyBounds.X + SBCornerSpacing + tipOffsetInLine, bodyBounds.GetBottom() },
+            { bodyBounds.X + SBCornerSpacingX + tipOffsetInLine + SBTipSpacing, bodyBounds.GetBottom() },
+            { bodyBounds.X + SBCornerSpacingX + tipOffsetInLine + tipMiddle, bodyBounds.GetBottom() + SBTipDepth },
+            { bodyBounds.X + SBCornerSpacingX + tipOffsetInLine, bodyBounds.GetBottom() },
         },
         // ESQUERDA
         {
-            { bodyBounds.X, bodyBounds.Y + SBCornerSpacing + tipOffsetInLine + SBTipSpacing },
-            { bodyBounds.X - SBTipDepth, bodyBounds.Y + SBCornerSpacing + tipOffsetInLine + tipMiddle },
-            { bodyBounds.X, bodyBounds.Y + SBCornerSpacing + tipOffsetInLine },
+            { bodyBounds.X, bodyBounds.Y + SBCornerSpacingY + tipOffsetInLine + SBTipSpacing },
+            { bodyBounds.X - SBTipDepth, bodyBounds.Y + SBCornerSpacingY + tipOffsetInLine + tipMiddle },
+            { bodyBounds.X, bodyBounds.Y + SBCornerSpacingY + tipOffsetInLine },
         },
     };
 
@@ -230,7 +246,7 @@ SizeF SpeechBalloonRenderer::GetTextSize(string text, SizeF maxSize) const
 
     SizeF outp = {};
 
-    g.MeasureString(text.c_str(), -1, AgFont, maxSize, nullptr, &outp);
+    g.MeasureString(text.c_str(), -1, AgFont, maxSize, StringFormat::GenericTypographic(), &outp);
 
     return outp;
 }
@@ -241,11 +257,11 @@ float SpeechBalloonRenderer::GetAverageCharWidth(const Font* f) const
     Bitmap b(1, 1);
     Graphics g(&b);
 
-    const WCHAR* testString = L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    const WCHAR* testString = L"abcdefghijklmnopqrstuvwxyz";
     int numChars = wcslen(testString);
 
     RectF layoutRect;
-    g.MeasureString(testString, numChars, AgFont, { 0, 0 }, &layoutRect);
+    g.MeasureString(testString, numChars, AgFont, SizeF{ 0, 0 }, StringFormat::GenericTypographic(), &layoutRect);
 
     return layoutRect.Width / numChars;
 }
@@ -264,7 +280,7 @@ SpeechBalloonRenderer::~SpeechBalloonRenderer()
 
 Rect SpeechBalloonRenderer::GetSize(TipQuadrant tq, string text)
 {
-    Rect r = { 0, 0, SBCornerSpacing * 2, SBCornerSpacing * 2 };
+    Rect r = { 0, 0, SBCornerSpacingX * 2, SBCornerSpacingY * 2 };
 
     SizeF size = GetTextSize(text, MaxSize);
 

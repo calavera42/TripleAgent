@@ -1,9 +1,5 @@
 #include "AgentFile.h"
 
-#define ReadTo(x, st) st.read((char*)&x, sizeof(x))
-#define JumpTo(x, st) st.seekg(x, std::ios_base::beg)
-#define Skip(x, st) st.seekg(x, std::ios_base::cur)
-
 string AgentFile::ReadString(std::ifstream& str)
 {
 	int length = 0;
@@ -21,26 +17,7 @@ string AgentFile::ReadString(std::ifstream& str)
 		output += curChar;
 	}
 
-	Skip(2, str); // null terminator (tem 2 bytes pq é um widechar)
-
-	return output;
-}
-
-template <typename Type>
-Type* AgentFile::ReadElements(std::ifstream& str, size_t count)
-{
-	Type* output = (Type*)calloc(count, sizeof(Type));
-
-	if (output == nullptr)
-		return nullptr;
-
-	for (size_t i = 0; i < count; i++)
-	{
-		Type temp = {};
-		ReadTo(temp, str);
-
-		output[i] = temp;
-	}
+	Skip(sizeof(wchar_t), str); // null terminator
 
 	return output;
 }
@@ -79,17 +56,17 @@ int AgentFile::Load(std::string path)
 	Stream = std::ifstream(path, std::ios_base::binary | std::ios_base::in);
 
 	if (!Stream.is_open())
-		return 1;
+		return AGX_DPV_FAIL_TO_OPEN_STREAM;
 
 	ReadTo(FileHeader, Stream);
 
-	if (FileHeader.Signature != 0xABCDABC3)
-		return 2;
+	if (FileHeader.Signature != ACS_MAGIC)
+		return AGX_DPV_INVALID_FILE_SIGNATURE;
 
 	ReadCharInfo(&FileHeader.CharacterInfo);
 
-	if (CharInfo.MajorVersion != 2)
-		return 2;
+	if (CharInfo.MajorVersion != ACS_MAJOR_VERSION)
+		return AGX_DPV_INCOMPATIBLE_VERSION;
 
 	ReadAnimationPointers(&FileHeader.AnimationInfo);
 	ReadImagePointers(&FileHeader.ImageInfo);
@@ -97,7 +74,7 @@ int AgentFile::Load(std::string path)
 
 	Initialized = true;
 
-	return 0;
+	return AGX_DPV_LOAD_SUCCESS;
 }
 
 CharacterInfo AgentFile::GetCharacterInfo()
@@ -140,10 +117,10 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 	if (CharInfo.HasTrayIcon)
 	{
 		ReadTo(AgentIcon.SizeOfMaskData, Stream);
-		AgentIcon.MaskBitmapData = ReadIconImage(AgentIcon.SizeOfMaskData);
+		AgentIcon.MaskBitmapData = ReadIconImage();
 
 		ReadTo(AgentIcon.SizeOfColorData, Stream);
-		AgentIcon.ColorBitmapData = ReadIconImage(AgentIcon.SizeOfColorData);
+		AgentIcon.ColorBitmapData = ReadIconImage();
 	}
 
 	std::vector<StateInfo> states = ReadVector<ushort, StateInfo>(Stream, [](std::ifstream& str) -> StateInfo {
@@ -178,7 +155,7 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 
 void AgentFile::ReadVoiceInfo()
 {
-	if (!((uint)CharInfo.Flags & (uint)CharacterFlags::VoiceEnabled))
+	if (!(CharInfo.Flags & CharacterFlags::VoiceEnabled))
 		return;
 
 	ReadTo(CharInfo.VoiceInfo, Stream);
@@ -197,7 +174,7 @@ void AgentFile::ReadVoiceInfo()
 
 void AgentFile::ReadBalloonInfo()
 {
-	if (!((uint)CharInfo.Flags & (uint)CharacterFlags::BalloonEnabled))
+	if (!(CharInfo.Flags & CharacterFlags::BalloonEnabled))
 		return;
 
 	ReadTo(CharInfo.BalloonInfo.TextLines, Stream);
@@ -236,7 +213,7 @@ LocalizedInfo AgentFile::GetLocalizedInfo(ushort langId)
 	return LocalizationInfo[langId];
 }
 
-IconImage AgentFile::ReadIconImage(int dataSize) // leitura obrigatória: https://devblogs.microsoft.com/oldnewthing/20101018-00/?p=12513
+IconImage AgentFile::ReadIconImage() // leitura obrigatória: https://devblogs.microsoft.com/oldnewthing/20101018-00/?p=12513
 {
 	IconImage iconImage = {};
 
@@ -245,17 +222,12 @@ IconImage AgentFile::ReadIconImage(int dataSize) // leitura obrigatória: https:/
 
 	size_t colorTableSize = iconImage.IconHeader.ColorUsed * sizeof(RGBQuad);
 	size_t pixelDataSize = iconImage.IconHeader.SizeOfImageData;
-	size_t rawDataSize = dataSize - iconImage.IconHeader.StructSize;
 
 	iconImage.ColorTable = std::shared_ptr<RGBQuad>((RGBQuad*)malloc(colorTableSize), free);
 	iconImage.PixelData = std::shared_ptr<byte>((byte*)malloc(pixelDataSize), free);
 
-	iconImage.RawData = std::shared_ptr<byte>((byte*)malloc(rawDataSize)); // repensar isso ner gatah
-
-	Stream.read((char*)iconImage.RawData.get(), rawDataSize);
-
-	memcpy(iconImage.ColorTable.get(), iconImage.RawData.get(), colorTableSize);
-	memcpy(iconImage.PixelData.get(), iconImage.RawData.get() + colorTableSize, pixelDataSize);
+	Stream.read((char*)iconImage.ColorTable.get(), colorTableSize);
+	Stream.read((char*)iconImage.PixelData.get(), pixelDataSize);
 
 	return iconImage;
 }
@@ -491,11 +463,11 @@ void AgentFile::DecompressData(byte* inputBuffer, size_t inputSize, byte* output
 {
 	BitReader br = BitReader(inputBuffer, inputSize);
 
-	const byte bitCountTable[] = {
+	constexpr byte bitCountTable[] = {
 		6, 9, 12, 20
 	};
 
-	const ushort valueSumTable[] = {
+	constexpr ushort valueSumTable[] = {
 		1, 65, 577, 4673
 	};
 
@@ -549,6 +521,9 @@ void AgentFile::DecompressData(byte* inputBuffer, size_t inputSize, byte* output
 
 TrayIcon AgentFile::GetAgentIcon()
 {
+	if (!Initialized)
+		throw std::runtime_error("Não inicializado.");
+
 	return AgentIcon;
 }
 

@@ -12,6 +12,7 @@ enum class TipQuadrant : int {
 	Right = 1,
 	Bottom = 2,
 	Left = 3,
+	Unset = 4
 };
 
 struct BalloonRenderInfo {

@@ -11,6 +11,11 @@
 
 #include "Structs.h"
 
+#define AGX_DPV_LOAD_SUCCESS 0
+#define AGX_DPV_FAIL_TO_OPEN_STREAM 1
+#define AGX_DPV_INVALID_FILE_SIGNATURE 2
+#define AGX_DPV_INCOMPATIBLE_VERSION 3
+
 class IAgentFile
 {
 public:
@@ -23,9 +28,9 @@ public:
 	// 	path - Caminho do arquivo do agente
 	//
 	//Saída:
-	// 	0 - Sucesso
-	// 	1 - Não foi possível abrir o arquivo
-	// 	2 - Formato de arquivo inválido
+	// 	AGX_DPV_LOAD_SUCCESS
+	// 	AGX_DPV_FAIL_TO_OPEN_STREAM
+	// 	AGX_DPV_INCOMPATIBLE_VERSION
 	virtual int Load(std::string path) = 0;
 
 	virtual CharacterInfo GetCharacterInfo() = 0;
@@ -45,4 +50,4 @@ public:
 };
 
 extern "C" AGENT_DPV IAgentFile* CreateAgentFile();
-extern "C" AGENT_DPV void DeleteAgentFile(IAgentFile* agent);
+extern "C" AGENT_DPV void DestroyAgentFile(IAgentFile* agent);

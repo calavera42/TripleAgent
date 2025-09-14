@@ -2,12 +2,15 @@
 
 #include "IBalloonRenderer.h"
 
-constexpr int SBTipDepth = 20;
-constexpr int SBTipSpacing = 14;
+constexpr int SBTipDepth = 17;
+constexpr int SBTipSpacing = 10;
 constexpr int SBTipMiddle = SBTipSpacing / 2;
-constexpr int SBCornerDiameter = 23;
 
-constexpr int SBCornerSpacing = 12;
+constexpr int SBCornerDiameterX = 15;
+constexpr int SBCornerDiameterY = 23;
+
+constexpr int SBCornerSpacingX = 9;
+constexpr int SBCornerSpacingY = 12;
 
 class SpeechBalloonRenderer : public IBalloonRenderer
 {

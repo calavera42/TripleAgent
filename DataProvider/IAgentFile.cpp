@@ -6,7 +6,7 @@ AGENT_DPV IAgentFile* CreateAgentFile()
 	return new AgentFile;
 }
 
-AGENT_DPV void DeleteAgentFile(IAgentFile* agent)
+AGENT_DPV void DestroyAgentFile(IAgentFile* agent)
 {
 	delete agent;
 }

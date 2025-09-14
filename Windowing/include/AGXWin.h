@@ -13,7 +13,10 @@
 
 #include <agxdpv.h>
 
-enum class EventType : uint8_t
+#define AGX_WND_CREATION_FAIL 1
+#define AGX_WND_CREATION_SUCCESS 1
+
+enum class AgEventType : uint8_t
 {
 	Invalid,
 
@@ -37,41 +40,55 @@ enum class EventType : uint8_t
 	AgentVisibleChange
 };
 
-struct Event {
-	EventType Type{};
-	std::variant<
-		std::shared_ptr<FrameInfo>, 
-		MouthOverlayType, 
-		AgPoint, 
-		bool, 
-		string, 
-		int, 
-		AgRect> Data{};
-};
+struct AgEvent;
+class IAgentWindow;
 
 class IAgentWindow {
 public:
-	virtual int Setup(IAgentFile* af, uint16_t langid = 0x416) = 0;
-	virtual AgPoint GetSize() = 0;
-	virtual AgPoint GetPos() = 0;
-	virtual bool IsVisible() = 0;
+	IAgentWindow() {};
 
-	virtual void UpdateState(Event info) = 0;
-	virtual Event QueryEvent() = 0;
+	IAgentWindow(const IAgentWindow&) = delete;
+	void operator=(const IAgentWindow&) = delete;
+
+	virtual int Setup(IAgentFile* af, uint16_t langid = 0x416) = 0;
+
+	virtual void UpdateState(AgEvent e) = 0;
+	virtual AgEvent QueryEvent() = 0;
+
+	virtual AgRect GetRect() = 0;
+	virtual bool IsVisible() = 0;
 };
 
 class IBalloonWindow {
 public:
-	// TODO: dar a opção de modificar o tamanho da fonte 
-	// (já q a info passada pelo balloon info é inútil)
+	IBalloonWindow() {};
+
+	IBalloonWindow(const IBalloonWindow&) = delete;
+	void operator=(const IBalloonWindow&) = delete;
+
 	virtual int Setup(CharacterInfo ci) = 0;
 
-	virtual void UpdateState(Event e) = 0;
-	virtual Event QueryEvent() = 0;
+	virtual void UpdateState(AgEvent e) = 0;
+};
+
+struct AgEvent {
+	AgEventType Type{};
+	std::variant<
+		std::shared_ptr<FrameInfo>,
+		MouthOverlayType,
+		AgPoint,
+		bool,
+		string,
+		int,
+		AgRect,
+		std::shared_ptr<IAgentWindow>
+	> Data{};
 };
 
 extern "C" AGENT_WIN IAgentWindow* CreateAgentWindow();
-extern "C" AGENT_WIN void DeleteAgentWindow(IAgentWindow* win);
-
 extern "C" AGENT_WIN IBalloonWindow* CreateBalloonWindow();
-extern "C" AGENT_WIN void DeleteBalloonWindow(IBalloonWindow* win);
+
+extern "C" AGENT_WIN void DestroyAgentWindow(IAgentWindow* ptr);
+extern "C" AGENT_WIN void DestroyBalloonWindow(IBalloonWindow* ptr);
+
+extern "C" AGENT_WIN void ProcessMessages();

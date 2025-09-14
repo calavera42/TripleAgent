@@ -14,6 +14,13 @@
 #include <vector>
 #include <algorithm>
 
+#define ACS_MAGIC 0xABCDABC3
+#define ACS_MAJOR_VERSION 2
+
+#define ReadTo(x, st) st.read((char*)&x, sizeof(x))
+#define JumpTo(x, st) st.seekg(x, std::ios_base::beg)
+#define Skip(x, st) st.seekg(x, std::ios_base::cur)
+
 class AgentFile : public IAgentFile
 {
 private:
@@ -38,9 +45,9 @@ public:
 	// 	path - Caminho do arquivo do agente
 	//
 	//Saída:
-	// 	0 - Sucesso
-	// 	1 - Não foi possível abrir o arquivo
-	// 	2 - Formato de arquivo inválido
+	// 	AGX_DPV_LOAD_SUCCESS
+	// 	AGX_DPV_FAIL_TO_OPEN_STREAM
+	// 	AGX_DPV_INCOMPATIBLE_VERSION
 	virtual int Load(std::string path) override;
 
 	virtual CharacterInfo GetCharacterInfo() override;
@@ -59,9 +66,6 @@ public:
 	std::vector<std::wstring> GetAnimationNames() override;
 
 private:
-	template <typename Type>
-	static Type* ReadElements(std::ifstream& str, size_t count);
-
 	template <typename ListCount, typename Type>
 	static std::vector<Type> ReadVector(std::ifstream& str, std::function<Type(std::ifstream&)> readFunc);
 
@@ -74,7 +78,7 @@ private:
 	void ReadCharInfo(ACSLocator* pos);
 	void ReadVoiceInfo();
 	void ReadBalloonInfo();
-	IconImage ReadIconImage(int dataSize);
+	IconImage ReadIconImage();
 	void ReadAnimationPointers(ACSLocator* pos);
 	void ReadImagePointers(ACSLocator* pos);
 	void ReadAudioPointers(ACSLocator* pos);

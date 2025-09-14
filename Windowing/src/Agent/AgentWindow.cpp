@@ -2,6 +2,8 @@
 
 using namespace Gdiplus;
 
+// TODO: POR FAVOR: AO FINALIZAR A PARTE FUNCIONAL DO PROJETO, REFATORAR TENDO EM MENTE O CICLO DE VIDA DESSA BIBLIOTECA.
+
 LRESULT AgentWindow::IntWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	AgentWindow* agx = (AgentWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
@@ -26,31 +28,27 @@ LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 		case WM_LBUTTONDOWN:
 		{
 			AgPoint p = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-			Event ev = {};
+			AgEvent ev = {};
 
-			ev.Type = (EventType)(uMsg & 0xFF); // se deus quiser a especificação não muda
+			ev.Type = (AgEventType)(uMsg & 0xFF); // se deus quiser a especificação não muda
 			ev.Data = p;
 
-			assert(ev.Type != EventType::WindowDragStart); // imagina q chato q seria
+			assert(ev.Type != AgEventType::WindowDragStart); // imagina q chato q seria
 
 			PushWindowEvent(ev);
-			break;
+			return TRUE;
 		}
 
 		case WM_NCHITTEST:
 		{
 			LRESULT lr = DefWindowProc(hwnd, uMsg, wParam, lParam);
-			int xPos = GET_X_LPARAM(lParam);
-			int yPos = GET_Y_LPARAM(lParam);
-
 
 			if (lr == HTCLIENT)
-			{
 				return HTCAPTION;
-			}
 
-			break;
+			return TRUE;
 		}
+
 		case WM_MOVING:
 		{
 			if (WindowStartDragging)
@@ -61,7 +59,7 @@ LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 			RECT* r = (RECT*)lParam;
 			AgPoint ap = { r->left, r->top };
 
-			PushWindowEvent({ EventType::WindowDragStart, ap });
+			PushWindowEvent({ AgEventType::WindowDragStart, ap });
 			return TRUE;
 		}
 
@@ -77,12 +75,13 @@ LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 			AgPoint ap = { r.left, r.top };
 
-			PushWindowEvent({ EventType::WindowDragEnd, ap });
+			PushWindowEvent({ AgEventType::WindowDragEnd, ap });
 			return TRUE;
 		}
 
-		case WM_ERASEBKGND:
-			return 1;
+		case WM_NEWEVENT:
+			ProcessUserEvent();
+			break;
 
 		default:
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -91,41 +90,27 @@ LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	return 0;
 }
 
-void AgentWindow::MessageLoop() 
-{
-	while (true)
-	{
-		MSG message = { 0 };
-		while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) 
-		{ 
-			DispatchMessage(&message); 
-		}
-
-		ProcessAgentUpdate();
-	}
-}
-
 // TODO: carregar o ícone do agente
-void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<int>& prom)
+int AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId)
 {
 	CharacterInfo ci = af->GetCharacterInfo();
 
-	const wchar_t wndClass[] = L"agntwndclss";
+	GUID guid;
+	HRESULT hr = CoCreateGuid(&guid);
 
-	int windowStyle = WS_CAPTION | WS_SYSMENU;
-	int windowExStyle = WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_LAYERED;
+	wchar_t guidString[64];
+	hr = StringFromGUID2(guid, guidString, 64);
+
+	WndClassName = L"agntwndclss" + std::wstring(guidString);
 
 	WNDCLASS wc = {};
 
 	wc.lpfnWndProc = (WNDPROC)IntWindowProc;
 	wc.hInstance = hInstDll;
-	wc.lpszClassName = wndClass;
+	wc.lpszClassName = WndClassName.c_str();
 
 	if (!RegisterClass(&wc))
-	{
-		prom.set_value(1);
-		return;
-	}
+		return AGX_WND_CREATION_FAIL;
 
 	RECT windowRect = {
 		0,
@@ -134,13 +119,13 @@ void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<in
 		ci.Height
 	};
 
-	AdjustWindowRectEx(&windowRect, windowStyle, false, windowExStyle);
+	AdjustWindowRectEx(&windowRect, WindowStyle, false, WindowExStyle);
 
 	HWND hwnd = CreateWindowEx(
-		windowExStyle,
-		wndClass,
+		WindowExStyle,
+		WndClassName.c_str(),
 		af->GetLocalizedInfo(langId).CharName.c_str(),
-		windowStyle,
+		WindowStyle,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		windowRect.right - windowRect.left, 
 		windowRect.bottom - windowRect.top,
@@ -148,10 +133,7 @@ void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<in
 	);
 
 	if (hwnd == NULL)
-	{
-		prom.set_value(2);
-		return;
-	}
+		return AGX_WND_CREATION_FAIL;
 
 	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
 
@@ -160,89 +142,65 @@ void AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId, std::promise<in
 
 	Handle = hwnd;
 
-	prom.set_value(0);
-
 	AgRender.Setup(af);
 
-	MessageLoop();
+	return AGX_WND_CREATION_SUCCESS;
 }
 
-void AgentWindow::UpdateState(Event info)
+void AgentWindow::PushWindowEvent(AgEvent e)
 {
-	std::lock_guard<std::mutex> lock(AgentQueueMutex);
-	AgentUpdateQueue.push(info);
+	std::scoped_lock<std::mutex> guard(EventsMutex);
+
+	WindowEvents.push(e);
 }
 
-Event AgentWindow::GetAgentUpdate()
+void AgentWindow::ProcessUserEvent()
 {
-	std::lock_guard<std::mutex> lock(AgentQueueMutex);
+	AgEvent e = PopUserEvent();
+	auto& data = e.Data;
 
-	if (AgentUpdateQueue.empty())
+	switch (e.Type)
+	{
+		case AgEventType::AgentVisibleChange:
+			ShowWindow(Handle, (std::get<bool>(data) ? SW_SHOW : SW_HIDE));
+			break;
+		case AgEventType::AgentFrameChange:
+		{
+			CurFrame = std::get<std::shared_ptr<FrameInfo>>(data);
+			AgRender.Paint(Handle, CurFrame, CurMouth);
+			break;
+		}
+		case AgEventType::AgentMouthChange:
+		{
+			CurMouth = std::get<MouthOverlayType>(data);
+			AgRender.Paint(Handle, CurFrame, CurMouth);
+			break;
+		}
+		case AgEventType::AgentMoveWindow:
+		{
+			AgRect ar = std::get<AgRect>(data);
+			SetWindowPos(Handle, nullptr, ar.Left, ar.Top, -1, -1, SWP_NOMOVE | SWP_NOZORDER);
+			break;
+		}
+	}
+}
+
+AgEvent AgentWindow::PopUserEvent()
+{
+	std::scoped_lock<std::mutex> guard(UpdateMutex);
+
+	if (AgentUpdates.empty())
 		return {};
 
-	Event ui = AgentUpdateQueue.front();
-	AgentUpdateQueue.pop();
+	AgEvent e = AgentUpdates.front();
+	AgentUpdates.pop();
 
-	return ui;
-}
-
-void AgentWindow::PushWindowEvent(Event e)
-{
-	std::lock_guard<std::mutex> guard(WindowEventsMutex);
-
-	WindowEventsQueue.push(e);
-}
-
-void AgentWindow::ProcessAgentUpdate()
-{
-	Event ui = GetAgentUpdate();
-
-	switch (ui.Type) 
-	{
-		case EventType::AgentVisibleChange:
-			ShowWindow(Handle, std::get<bool>(ui.Data) ? SW_SHOW : SW_HIDE);
-			break;
-		case EventType::AgentFrameChange:
-		{
-			CurFrame = std::get<std::shared_ptr<FrameInfo>>(ui.Data);
-			AgRender.Paint(Handle, CurFrame, CurMouth);
-			break;
-		}
-		case EventType::AgentMoveWindow:
-		{
-			AgPoint targetPos = std::get<AgPoint>(ui.Data);
-			SetWindowPos(
-				Handle, 
-				NULL, 
-				targetPos.X, 
-				targetPos.Y, 
-				-1, -1, 
-				SWP_NOSIZE | 
-				SWP_NOZORDER
-			);
-			break;
-		}
-		case EventType::AgentMouthChange:
-		{
-			CurMouth = std::get<MouthOverlayType>(ui.Data);
-			AgRender.Paint(Handle, CurFrame, CurMouth);
-			break;
-		}
-		default:
-			break;
-	}
+	return e;
 }
 
 int AgentWindow::Setup(IAgentFile* af, uint16_t langId)
 {
-	std::promise<int> promise;
-	std::future<int> future = promise.get_future();
-
-	std::thread([this, af, langId, prom = std::move(promise)]() mutable {
-		this->InternalSetup(af, langId, prom);
-	}).detach();
-
-	return future.get();
+	return InternalSetup(af, langId);
 }
 
 bool AgentWindow::IsVisible()
@@ -250,29 +208,35 @@ bool AgentWindow::IsVisible()
 	return IsWindowVisible(Handle);
 }
 
-Event AgentWindow::QueryEvent()
+void AgentWindow::UpdateState(AgEvent e) 
 {
-	std::lock_guard<std::mutex> lock(WindowEventsMutex);
+	std::scoped_lock<std::mutex> guard(EventsMutex);
 
-	if (WindowEventsQueue.empty())
+	AgentUpdates.push(e);
+	PostMessage(Handle, WM_NEWEVENT, 0, 0);
+}
+
+AgEvent AgentWindow::QueryEvent()
+{
+	if (WindowEvents.empty())
 		return {};
 
-	Event e = WindowEventsQueue.front();
-	WindowEventsQueue.pop();
+	AgEvent e = WindowEvents.front();
+	WindowEvents.pop();
 
 	return e;
 }
 
-AgPoint AgentWindow::GetSize()
-{
-	return AgPoint{ Width, Height };
-}
-
-AgPoint AgentWindow::GetPos()
+AgRect AgentWindow::GetRect()
 {
 	RECT r = {};
 
 	GetWindowRect(Handle, &r);
 
-	return AgPoint{ r.left, r.top };
+	return AgRect{ r.left, r.top, r.right, r.bottom };
+}
+
+AgentWindow::~AgentWindow()
+{
+	UnregisterClass(WndClassName.c_str(), hInstDll);
 }

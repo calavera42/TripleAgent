@@ -24,7 +24,7 @@ struct StateInfo;
 struct RGBQuad;
 struct RgnData;
 
-enum class MouthOverlayType : byte {
+enum MouthOverlayType : byte {
 	Closed = 0,
 	WideOpen1 = 1,
 	WideOpen2 = 2,
@@ -34,13 +34,13 @@ enum class MouthOverlayType : byte {
 	Narrow = 6
 };
 
-enum class TransitionType : byte {
+enum TransitionType : byte {
 	ReturnAnimation = 0,
 	ExitBranches = 1,
 	None = 2
 };
 
-enum class CharacterFlags : uint {
+enum CharacterFlags : uint {
 	VoiceEnabled = 1 << 5,
 	BalloonDisabled = 1 << 8,
 	BalloonEnabled = 1 << 9,
@@ -151,9 +151,6 @@ struct IconImage {
 
 	std::shared_ptr<RGBQuad> ColorTable{};
 	std::shared_ptr<byte> PixelData;
-
-	// é a informação crua, usada se for carregada como bitmap por um subsistema (tipo o gdi)
-	std::shared_ptr<byte> RawData{};
 };
 
 struct TrayIcon {
