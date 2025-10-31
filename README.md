@@ -4,7 +4,7 @@
 Non-COM open-source reimplementation of Microsoft Agent Technology
 
 ## What this project is
-This project offers only the API to create and display the animated characters, speech balloons and to synthesize speech. It doesn't aim to implement the speech based command system of the original API.
+This project offers only the API to create and control the animated character. It doesn't aim to implement the speech based command system of the original API.
 
 ## The current implementation
 
