@@ -31,7 +31,7 @@ Read first: [MSDN](https://learn.microsoft.com/en-us/windows/win32/lwef/microsof
   MSAgent's animation system requires the speaking frame to be last. To work around this, some characters make the speaking frame jump to a null frame, ending the animation so the final valid frame is the one preceding the jump.
   
   ### Moving an Agent
-  The specific details are unknown at the moment, but, I'm working under the assumption that it works more or less like the `Speaking frame`. The agent gets the right move animation -> plays it -> skips to a null frame -> moves to the desired position -> finishes.
+  The specific details are unknown at the moment. I'm working under the assumption that it works more or less like the `Speaking frame`. The agent plays the right move animation, then it skips to the null frame, moves to the desired position and finishes the animation.
 
 ## Working theory
 The first time I implemented the core loop I had closely tied the animation system and request system. Looking back I think that is not solution to the problem. All these complex tricks and techniques derived from the technology hint to some sort of frame-level FSM.
