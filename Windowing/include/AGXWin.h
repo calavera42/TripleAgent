@@ -71,17 +71,20 @@ public:
 	virtual void UpdateState(AgEvent e) = 0;
 };
 
+typedef std::shared_ptr<FrameInfo> FramePointer;
+typedef std::shared_ptr<IAgentWindow> WindowPointer;
+
 struct AgEvent {
 	AgEventType Type{};
 	std::variant<
-		std::shared_ptr<FrameInfo>,
+		FramePointer,
 		MouthOverlayType,
 		AgPoint,
 		bool,
 		string,
 		int,
 		AgRect,
-		std::shared_ptr<IAgentWindow>
+		WindowPointer
 	> Data{};
 };
 

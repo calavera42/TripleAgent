@@ -1,29 +1,31 @@
 #pragma once
 
-#include "../request.h"
+#include "../chore.h"
 
 #include <AGXDpv.h>
 
-class Animation : public Request
+#define REQUEST_DONE -1
+
+class Animation : public Chore
 {
 private:
-	IAgentFile* _agentFile;
 	AnimationInfo _animation;
+	int _id;
+
+	int _lastValidFrame;
+
 	int _currentFrame;
+	int _animationLength;
+
+	FramePointer GetFrame(int frame);
+	void DoFrameProceed(std::vector<BranchInfo>& branches);
 
 public:
-	Animation(int id, string animName, IAgentFile* agentFile)
-	{
-		_currentFrame = 0;
-		_animation = agentFile->GetAnimationInfo(animName);
-	}
+	Animation(int id, std::wstring animName, IAgentFile* agentFile);
 
-	UpdateResult Update(IAgentWindow* iaw, IBalloonWindow* ibw) override;
-	UpdateResult Stop(IAgentWindow* iaw, IBalloonWindow* ibw) override;
+	int Update(Agent* current, IAgentWindow* iaw, IBalloonWindow* ibw) override;
+	int Return(Agent* current, IAgentWindow* iaw, IBalloonWindow* ibw) override;
 
-	int GetID() override;
-	void Wait() override;
-	void OnComplete(void(*callfunc)()) override;
-	void OnCancel(void(*callfunc)()) override;
+	Type GetType() override;
 };
 

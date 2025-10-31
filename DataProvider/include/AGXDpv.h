@@ -46,7 +46,8 @@ public:
 
 	virtual TrayIcon GetAgentIcon() = 0;
 
-	virtual std::vector<std::wstring> GetAnimationNames() = 0;
+	virtual std::vector<std::wstring> GetAnimationsList() = 0;
+	virtual std::vector<std::wstring> GetAvailableStates() = 0;
 };
 
 extern "C" AGENT_DPV IAgentFile* CreateAgentFile();

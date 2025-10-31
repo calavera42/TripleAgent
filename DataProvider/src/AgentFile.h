@@ -26,20 +26,21 @@ class AgentFile : public IAgentFile
 private:
 	ACSHeader FileHeader = {};
 
-	std::map<string, StateInfo> AnimationStates = {};
-	std::map<string, AnimationPointer> Animations = {};
+	std::map<string, StateInfo> _animationStates = {};
+	std::map<string, AnimationPointer> _animations = {};
 
-	std::vector<ImagePointer> ImagePointers = {};
-	std::vector<AudioPointer> AudioPointers = {};
+	std::vector<ImagePointer> _imagePointers = {};
+	std::vector<AudioPointer> _audioPointers = {};
 
-	std::map<ushort, LocalizedInfo> LocalizationInfo = {};
+	std::map<ushort, LocalizedInfo> _localizationInfo = {};
 
-	CharacterInfo CharInfo = {};
-	TrayIcon AgentIcon = {};
+	CharacterInfo _charInfo = {};
+	TrayIcon _agentIcon = {};
 
-	bool Initialized = false;
+	bool _initialized = false;
 
-	std::ifstream Stream;
+	std::ifstream _stream;
+
 public:
 	//Entrada:
 	// 	path - Caminho do arquivo do agente
@@ -63,7 +64,8 @@ public:
 
 	virtual TrayIcon GetAgentIcon() override;
 
-	std::vector<std::wstring> GetAnimationNames() override;
+	virtual std::vector<std::wstring> GetAnimationsList() override;
+	virtual std::vector<std::wstring> GetAvailableStates() override;
 
 private:
 	template <typename ListCount, typename Type>

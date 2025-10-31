@@ -19,11 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\request\animation.h" />
-    <ClInclude Include="src\request.h" />
-    <ClInclude Include="src\requestman.h" />
+    <ClInclude Include="src\chore.h" />
     <ClInclude Include="src\agent.h" />
     <ClInclude Include="include\trplagnt.h" />
+    <ClInclude Include="src\request\animation.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\request\animation.cpp" />

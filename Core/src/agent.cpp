@@ -1,49 +1,131 @@
 #include "agent.h"
 
-IRequest& Agent::Show()
+using namespace std;
+
+void Agent::ServeRequest(Chore* i)
 {
-    // TODO: inserir instrução return aqui
+
 }
 
-IRequest& Agent::Hide()
+void Agent::Loop()
 {
-    // TODO: inserir instrução return aqui
+    _agentWindow->Setup(_agentFile);
+    _balloonWindow->Setup(_agentFile->GetCharacterInfo());
+
+    Animation n = Animation{ 0, L"reading", _agentFile };
+
+    _currentRequest = &n;
+
+    auto t1 = chrono::steady_clock::now();
+    auto t2 = chrono::steady_clock::now();
+
+    int delta = 0;
+
+    while (_running) 
+    {
+        delta = chrono::duration_cast<chrono::milliseconds>(t2 - t1).count();
+
+        t1 = t2;
+        t2 = chrono::steady_clock::now();
+
+        if (_currentRequest == nullptr) 
+        {
+            _currentRequest = &_requestQueue.front();
+            _runningRequests.push(&_requestQueue.front());
+        }
+
+        int result;
+
+        switch (_requestStage) 
+        {
+            case Running:
+            {
+                result = _currentRequest->Update(this, _agentWindow, _balloonWindow);
+
+                
+            }
+            break;
+
+            case Stopping:
+            {
+
+            }
+            break;
+
+            case Waiting:
+            default:
+                break;
+        }
+
+        _requestStage = _nextStage;
+
+        ProcessMessages();
+    }
 }
 
-IRequest& Agent::MoveTo(int x, int y)
+Agent::Agent()
 {
-    // TODO: inserir instrução return aqui
+    _agentWindow = CreateAgentWindow();
+    _balloonWindow = CreateBalloonWindow();
+
+    _agentFile = CreateAgentFile();
+    _agentFile->Load("d:/desktop/peedy.acs"); // TODO: checar valores de retorno
+
+    std::thread(Loop, this).detach();
 }
 
-IRequest& Agent::GestureAt(int x, int y)
+Agent::~Agent()
 {
-    // TODO: inserir instrução return aqui
+    DestroyAgentWindow(_agentWindow);
+    DestroyBalloonWindow(_balloonWindow);
+
+    DestroyAgentFile(_agentFile);
 }
 
-IRequest& Agent::Speak(std::wstring text)
+Request* Agent::Show()
 {
-    // TODO: inserir instrução return aqui
+    return nullptr;
 }
 
-IRequest& Agent::Play(std::wstring animationName)
+Request* Agent::Hide()
 {
-    // TODO: inserir instrução return aqui
+    return nullptr;
 }
 
-IRequest& Agent::Stop()
+Request* Agent::MoveTo(int x, int y)
 {
-    // TODO: inserir instrução return aqui
+    return nullptr;
 }
 
-IRequest& Agent::Stop(IRequest& request)
+Request* Agent::GestureAt(int x, int y)
 {
-    // TODO: inserir instrução return aqui
+    return nullptr;
 }
 
-void Agent::CompletionSink(void(*callfunc)(IRequest& r))
+Request* Agent::Speak(std::wstring text)
+{
+    return nullptr;
+}
+
+Request* Agent::Play(std::wstring animationName)
+{
+    return nullptr;
+}
+
+Request* Agent::Stop()
+{
+    return nullptr;
+}
+
+Request* Agent::Stop(Request& request)
+{
+    return nullptr;
+}
+
+void Agent::CompletionSink(std::function<void(Request&)> r)
 {
 }
 
-void Agent::CancellationSink(void(*callfunc)(IRequest& r))
+void Agent::CancellationSink(std::function<void(Request&)> r)
 {
 }

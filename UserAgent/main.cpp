@@ -1,21 +1,44 @@
 #include <agxdpv.h>
 #include "../Windowing/include/AGXWin.h"
 
+#include "../Core/include/trplagnt.h"
+
 #include <time.h>
 #include <windows.h>
 #include <chrono>
 
 #include <thread>
 
-#include "../Markdown/include/AgentMarkdown.h"
-
 void loop(std::string map);
+
+void PrintAnimation(IAgentFile* af, string name) 
+{
+	AnimationInfo ai = af->GetAnimationInfo(name);
+
+	printf("BEGIN ANIM \"%ls\"\n\n", name.c_str());
+
+	for (int i = 0; i < ai.Frames.size(); i++)
+		printf("i: %d; EF: %d; DU: %d\n", i, ai.Frames[i].ExitFrameIndex, ai.Frames[i].FrameDuration);
+
+	printf("\nEND ANIM\n");
+}
 
 int main()
 {
-	Lexer l{};
+	/*IAgentFile* af = CreateAgentFile();
+	af->Load("d:/desktop/peedy.acs");
 
-	l.ParseString(L"acredite ou não eu simplesmente estou esgotado");
+	for (string& s : af->GetAnimationsList())
+		PrintAnimation(af, s);*/
+
+	IAgent* iag = CreateAgent();
+
+	iag->Play(L"reading")->OnComplete([] 
+	{
+		printf("a");
+	});
+
+	while (true);
 
 	return 1;
 }

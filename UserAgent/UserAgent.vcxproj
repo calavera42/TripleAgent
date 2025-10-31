@@ -152,9 +152,6 @@
     <ProjectReference Include="..\DataProvider\DataProvider.vcxproj">
       <Project>{76707b89-798b-4827-af2d-501270ca1425}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\Markdown\Markdown.vcxproj">
-      <Project>{aa91db7d-b85f-453c-8370-db6c2de2eb97}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\Windowing\Windowing.vcxproj">
       <Project>{8c9ac218-eac0-4575-82dc-fe0e083c7e06}</Project>
     </ProjectReference>
