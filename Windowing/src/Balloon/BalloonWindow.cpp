@@ -194,7 +194,7 @@ void BalloonWindow::ProcessUserEvents()
 	switch (e.Type) 
 	{
 		case AgEventType::AgentBalloonShow:
-			Show(std::get<string>(data));
+			Show(std::get<wstring>(data));
 			break;
 		case AgEventType::AgentBalloonHide:
 			Hide();
@@ -234,7 +234,7 @@ BalloonWindow::~BalloonWindow()
 	delete BalloonRenderer;
 }
 
-void BalloonWindow::Show(string t)
+void BalloonWindow::Show(std::string t)
 {
 	ShowWindow(Handle, SW_HIDE);
 

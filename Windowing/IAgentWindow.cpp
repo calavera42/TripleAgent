@@ -1,7 +1,7 @@
-#include "include/AGXWin.h"
+#include "../include/AGXWin.h"
 
-#include "src/Agent/AgentWindow.h"
-#include "src/Balloon/BalloonWindow.h"
+#include "../src/Agent/AgentWindow.h"
+#include "../src/Balloon/BalloonWindow.h"
 
 #include <windows.h>
 

@@ -239,7 +239,7 @@ void SpeechBalloonRenderer::DrawShape(Gdiplus::Graphics* g, Gdiplus::Rect bodyBo
     g->DrawPath(BorderPen, &gp);
 }
 
-SizeF SpeechBalloonRenderer::GetTextSize(string text, SizeF maxSize) const
+SizeF SpeechBalloonRenderer::GetTextSize(wstring text, SizeF maxSize) const
 {
     Bitmap b(1, 1);
     Graphics g(&b);
@@ -278,7 +278,7 @@ SpeechBalloonRenderer::~SpeechBalloonRenderer()
     GdiplusShutdown(GdiToken);
 }
 
-Rect SpeechBalloonRenderer::GetSize(TipQuadrant tq, string text)
+Rect SpeechBalloonRenderer::GetSize(TipQuadrant tq, wstring text)
 {
     Rect r = { 0, 0, SBCornerSpacingX * 2, SBCornerSpacingY * 2 };
 

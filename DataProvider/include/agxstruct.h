@@ -4,11 +4,7 @@
 #include <vector>
 #include <memory>
 
-typedef unsigned int uint;
-typedef unsigned char byte;
-typedef wchar_t wchar;
-typedef unsigned short ushort;
-typedef std::wstring string;
+#include "langid.h"
 
 struct AnimationInfo;
 struct BalloonInfo;
@@ -24,7 +20,7 @@ struct StateInfo;
 struct RGBQuad;
 struct RgnData;
 
-enum MouthOverlayType : byte {
+enum MouthOverlayType : uint8_t {
 	Closed = 0,
 	WideOpen1 = 1,
 	WideOpen2 = 2,
@@ -34,13 +30,13 @@ enum MouthOverlayType : byte {
 	Narrow = 6
 };
 
-enum TransitionType : byte {
+enum TransitionType : uint8_t {
 	ReturnAnimation = 0,
 	ExitBranches = 1,
 	None = 2
 };
 
-enum CharacterFlags : uint {
+enum CharacterFlags : uint32_t {
 	VoiceEnabled = 1 << 5,
 	BalloonDisabled = 1 << 8,
 	BalloonEnabled = 1 << 9,
@@ -52,10 +48,10 @@ enum CharacterFlags : uint {
 
 #pragma pack(push, 1)
 struct RGBQuad {
-	byte Blue{};
-	byte Green{};
-	byte Red{};
-	byte Reserved{};
+	uint8_t Blue{};
+	uint8_t Green{};
+	uint8_t Red{};
+	uint8_t Reserved{};
 };
 
 struct AgRect {
@@ -66,10 +62,10 @@ struct AgRect {
 };
 
 struct RgnDataHeader {
-	uint HeaderSize{};
-	uint Type{};
-	uint RectCount{};
-	uint BufferSize{};
+	uint32_t HeaderSize{};
+	uint32_t Type{};
+	uint32_t RectCount{};
+	uint32_t BufferSize{};
 	AgRect Bounds{};
 };
 
@@ -79,14 +75,14 @@ struct RgnData {
 };
 
 struct LocalizedInfo {
-	ushort LanguageId{};
-	string CharName{};
-	string CharDescription{};
-	string CharExtraData{};
+	LangId LanguageId{};
+	std::wstring CharName{};
+	std::wstring CharDescription{};
+	std::wstring CharExtraData{};
 };
 
 struct FrameImage {
-	uint ImageIndex{};
+	uint32_t ImageIndex{};
 	short OffsetX{};
 	short OffsetY{};
 };
@@ -94,117 +90,117 @@ struct FrameImage {
 struct FrameInfo {
 	std::vector<FrameImage> Images{};
 	short AudioIndex{};
-	ushort FrameDuration{};
+	uint16_t FrameDuration{};
 	short ExitFrameIndex{};
 	std::vector<BranchInfo> Branches{};
 	std::vector<OverlayInfo> Overlays{};
 };
 
 struct AnimationInfo {
-	string AnimationName{};
+	std::wstring AnimationName{};
 	TransitionType Transition{};
-	string ReturnAnimation{};
+	std::wstring ReturnAnimation{};
 	std::vector<FrameInfo> Frames{};
 };
 
 struct BranchInfo {
-	ushort TargetFrame{};
-	ushort Probability{};
+	uint16_t TargetFrame{};
+	uint16_t Probability{};
 };
 
 struct OverlayInfo {
 	MouthOverlayType OverlayType{};
 	bool ReplaceTopImage{};
-	ushort ImageIndex{};
-	byte Unknown{};
+	uint16_t ImageIndex{};
+	uint8_t Unknown{};
 	bool HasRegionData{};
-	short OffsetX{};
-	short OffsetY{};
-	ushort Width{};
-	ushort Height{};
+	int16_t OffsetX{};
+	int16_t OffsetY{};
+	uint16_t Width{};
+	uint16_t Height{};
 	RgnData RegionData{};
 };
 
 struct Guid {
-	unsigned long Data1{};
-	unsigned short Data2{};
-	unsigned short Data3{};
-	unsigned char Data4[8]{};
+	uint32_t Data1{};
+	uint16_t Data2{};
+	uint16_t Data3{};
+	uint8_t Data4[8]{};
 };
 
 struct BitmapInfoHeader {
-	uint StructSize{};
-	int Width{};
-	int Height{};
-	ushort Planes{};
-	ushort BitsPerPixel{};
-	uint CompressionType{};
-	uint SizeOfImageData{};
-	int XPelsPerMeter{};
-	int YPelsPerMeter{};
-	uint ColorUsed{};
-	uint ImportantColor{};
+	uint32_t StructSize{};
+	int32_t Width{};
+	int32_t Height{};
+	uint16_t Planes{};
+	uint16_t BitsPerPixel{};
+	uint32_t CompressionType{};
+	uint32_t SizeOfImageData{};
+	int32_t XPelsPerMeter{};
+	int32_t YPelsPerMeter{};
+	uint32_t ColorUsed{};
+	uint32_t ImportantColor{};
 };
 
 struct IconImage {
 	BitmapInfoHeader IconHeader{};
 
 	std::shared_ptr<RGBQuad> ColorTable{};
-	std::shared_ptr<byte> PixelData;
+	std::shared_ptr<uint8_t> PixelData;
 };
 
 struct TrayIcon {
-	uint SizeOfMaskData{};
+	uint32_t SizeOfMaskData{};
 	IconImage MaskBitmapData{};
-	uint SizeOfColorData{};
+	uint32_t SizeOfColorData{};
 	IconImage ColorBitmapData{};
 };
 
 struct ExtraVoiceInfo {
-	ushort LangId{};
-	string LanguageDialect{};
-	ushort Gender{};
-	ushort Age{};
-	string Style{};
+	uint16_t LangId{};
+	std::wstring LanguageDialect{};
+	uint16_t Gender{};
+	uint16_t Age{};
+	std::wstring Style{};
 };
 
 struct VoiceInfo {
 	Guid TTSEngineId{};
 	Guid TTSModeId{};
-	uint Speed{};
-	ushort Pitch{};
+	uint32_t Speed{};
+	uint16_t Pitch{};
 	bool ExtraData{};
 };
 
 struct BalloonInfo {
-	byte TextLines{};
-	byte CharsPerLine{};
+	uint8_t TextLines{};
+	uint8_t CharsPerLine{};
 	RGBQuad ForegroundColor{};
 	RGBQuad BackgroundColor{};
 	RGBQuad BorderColor{};
-	string FontName{};
+	std::wstring FontName{};
 	int FontHeight{};
 	int FontWeight{};
 	bool Italic{};
-	byte Unknown{};
+	uint8_t Unknown{};
 };
 
 struct StateInfo {
-	string StateName{};
-	std::vector<string> Animations{};
+	std::wstring StateName{};
+	std::vector<std::wstring> Animations{};
 };
 
 struct CharacterInfo {
-	ushort MinorVersion{};
-	ushort MajorVersion{};
+	uint16_t MinorVersion{};
+	uint16_t MajorVersion{};
 	Guid CharId{};
-	ushort Width{};
-	ushort Height{};
-	byte TransparencyIndex{};
+	uint16_t Width{};
+	uint16_t Height{};
+	uint8_t TransparencyIndex{};
 	std::vector<RGBQuad> ColorTable{};
 	CharacterFlags Flags{};
-	ushort AnimationMajorVersion{};
-	ushort AnimationMinorVersion{};
+	uint16_t AnimationMajorVersion{};
+	uint16_t AnimationMinorVersion{};
 	bool HasTrayIcon{};
 	VoiceInfo VoiceInfo{};
 	ExtraVoiceInfo AdditionalVoiceInfo{};
@@ -213,15 +209,15 @@ struct CharacterInfo {
 #pragma pack(pop)
 
 struct AudioData {
-	std::shared_ptr<byte> Data;
-	uint Size;
+	std::shared_ptr<uint8_t> Data;
+	uint32_t Size;
 };
 
 struct ImageData {
-	ushort Width{};
-	ushort Height{};
+	uint16_t Width{};
+	uint16_t Height{};
 
-	std::shared_ptr<byte> Data{};
+	std::shared_ptr<uint8_t> Data{};
 	size_t Size{};
 };
 

@@ -44,7 +44,7 @@ private:
 
 	void Place(TipQuadrant tq, Gdiplus::Rect agRect, Gdiplus::Rect wkRect);
 
-	Gdiplus::SizeF GetTextSize(string text, Gdiplus::SizeF maxSize) const;
+	Gdiplus::SizeF GetTextSize(wstring text, Gdiplus::SizeF maxSize) const;
 	float GetAverageCharWidth(const Gdiplus::Font* f) const;
 
 
@@ -52,7 +52,7 @@ public:
 	void Setup(CharacterInfo& ci) override;
 	void Paint(HWND hwnd, BalloonRenderInfo bri) override;
 
-	Gdiplus::Rect GetSize(TipQuadrant tq, string Text) override;
+	Gdiplus::Rect GetSize(TipQuadrant tq, wstring Text) override;
 
 	~SpeechBalloonRenderer();
 };

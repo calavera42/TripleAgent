@@ -44,7 +44,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseOfMfc>false</UseOfMfc>
   </PropertyGroup>
@@ -164,17 +164,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="IAgentFile.cpp" />
-    <ClCompile Include="src\AgentFile.cpp" />
+    <ClCompile Include="agent_factory.cpp" />
+    <ClCompile Include="src\agent_file.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\AGXDpv.h" />
-    <ClInclude Include="include\Structs.h" />
-    <ClInclude Include="src\AgentFile.h" />
-    <ClInclude Include="src\BitReader.h" />
+    <ClInclude Include="include\agxdpv.h" />
+    <ClInclude Include="include\agxstruct.h" />
+    <ClInclude Include="include\langid.h" />
+    <ClInclude Include="src\agent_file.h" />
+    <ClInclude Include="src\bit_reader.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="src\Structs.h" />
-    <ClInclude Include="src\Types.h" />
+    <ClInclude Include="src\acsstructs.h" />
+    <ClInclude Include="src\types.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DataProvider.rc" />

@@ -42,7 +42,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -164,11 +164,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="IAgentWindow.cpp" />
     <ClCompile Include="src\Balloon\BalloonRendering\SpeechBalloonRenderer.cpp" />
     <ClCompile Include="src\Balloon\BalloonWindow.cpp" />
     <ClCompile Include="src\Agent\AgentRendering.cpp" />
     <ClCompile Include="src\Agent\AgentWindow.cpp" />
-    <ClCompile Include="IAgentWindow.cpp" />
     <ClCompile Include="include\AGXWin.h" />
   </ItemGroup>
   <ItemGroup>

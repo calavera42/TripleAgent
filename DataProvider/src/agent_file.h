@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../include/AGXDpv.h"
-#include "Structs.h"
+#include "../include/agxdpv.h"
+#include "acsstructs.h"
 
-#include "BitReader.h"
+#include "bit_reader.h"
 
 #include <functional>
 #include <fstream>
@@ -14,8 +14,8 @@
 #include <vector>
 #include <algorithm>
 
-#define ACS_MAGIC 0xABCDABC3
-#define ACS_MAJOR_VERSION 2
+constexpr uint32_t ACS_MAGIC = 0xABCDABC3;
+constexpr uint32_t ACS_MAJOR_VERSION = 2;
 
 #define ReadTo(x, st) st.read((char*)&x, sizeof(x))
 #define JumpTo(x, st) st.seekg(x, std::ios_base::beg)
@@ -26,13 +26,13 @@ class AgentFile : public IAgentFile
 private:
 	ACSHeader FileHeader = {};
 
-	std::map<string, StateInfo> _animationStates = {};
-	std::map<string, AnimationPointer> _animations = {};
+	std::map<wstring, StateInfo> _animationStates = {};
+	std::map<wstring, AnimationPointer> _animations = {};
 
 	std::vector<ImagePointer> _imagePointers = {};
 	std::vector<AudioPointer> _audioPointers = {};
 
-	std::map<ushort, LocalizedInfo> _localizationInfo = {};
+	std::map<LangId, LocalizedInfo> _localizationInfo = {};
 
 	CharacterInfo _charInfo = {};
 	TrayIcon _agentIcon = {};
@@ -49,18 +49,18 @@ public:
 	// 	AGX_DPV_LOAD_SUCCESS
 	// 	AGX_DPV_FAIL_TO_OPEN_STREAM
 	// 	AGX_DPV_INCOMPATIBLE_VERSION
-	virtual int Load(std::string path) override;
+	virtual LoadResult Load(std::string path) override;
 
 	virtual CharacterInfo GetCharacterInfo() override;
-	virtual LocalizedInfo GetLocalizedInfo(ushort langId) override;
+	virtual LocalizedInfo GetLocalizedInfo(LangId langId) override;
 
-	virtual StateInfo GetStateInfo(string name) override;
-	virtual AnimationInfo GetAnimationInfo(string name) override;
+	virtual StateInfo GetStateInfo(wstring name) override;
+	virtual AnimationInfo GetAnimationInfo(wstring name) override;
 
-	virtual ImageData ReadImageData(uint index) override;
-	virtual AudioData ReadAudioData(uint index) override;
+	virtual ImageData ReadImageData(uint32_t index) override;
+	virtual AudioData ReadAudioData(uint32_t index) override;
 
-	virtual RgnData ReadImageRegion(unsigned int index) override;
+	virtual RgnData ReadImageRegion(uint32_t index) override;
 
 	virtual TrayIcon GetAgentIcon() override;
 
@@ -74,8 +74,8 @@ private:
 	template <typename Type>
 	static Type ReadSimple(std::ifstream& str);
 
-	static string ReadString(std::ifstream& str);
-	static void NormalizeString(string& s);
+	static wstring ReadString(std::ifstream& str);
+	static void NormalizeString(wstring& s);
 
 	void ReadCharInfo(ACSLocator* pos);
 	void ReadVoiceInfo();
@@ -85,5 +85,5 @@ private:
 	void ReadImagePointers(ACSLocator* pos);
 	void ReadAudioPointers(ACSLocator* pos);
 	RgnData ReadRegionData(CompressedData* cd);
-	void DecompressData(byte* inputBuffer, size_t inputSize, byte* outputBuffer);
+	void DecompressData(uint8_t* inputBuffer, size_t inputSize, uint8_t* outputBuffer);
 };

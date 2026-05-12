@@ -1,5 +1,5 @@
-#include "include/AGXDpv.h"
-#include "src/AgentFile.h"
+#include "include/agxdpv.h"
+#include "src/agent_file.h"
 
 AGENT_DPV IAgentFile* CreateAgentFile()
 {

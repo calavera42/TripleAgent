@@ -15,7 +15,7 @@ private:
 	CharacterInfo CharInfo;
 	Gdiplus::ColorPalette* AgentPalette = nullptr;
 
-	void DrawFrame(Gdiplus::Graphics* g, uint frameIndex, int offsetX, int offsetY);
+	void DrawFrame(Gdiplus::Graphics* g, uint32_t frameIndex, int offsetX, int offsetY);
 
 	Gdiplus::ColorPalette* CreatePalette(std::vector<RGBQuad> colorPalette);
 	std::unique_ptr<Gdiplus::Bitmap> GetFrameBitmap(ImageData& im) const;

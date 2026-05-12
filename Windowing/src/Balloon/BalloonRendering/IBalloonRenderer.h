@@ -18,7 +18,7 @@ enum class TipQuadrant : int {
 struct BalloonRenderInfo {
 	TipQuadrant TipQuad;
 	int TipOffsetInLine;
-	string Text;
+	wstring Text;
 	bool AutoPace;
 	int SpeechProgress;
 };
@@ -29,5 +29,5 @@ public:
 	virtual void Setup(CharacterInfo& ci) = 0;
 	virtual void Paint(HWND hwnd, BalloonRenderInfo bri) = 0;
 
-	virtual Gdiplus::Rect GetSize(TipQuadrant tq, string Text) = 0;
+	virtual Gdiplus::Rect GetSize(TipQuadrant tq, wstring Text) = 0;
 };

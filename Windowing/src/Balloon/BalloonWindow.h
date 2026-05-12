@@ -36,7 +36,7 @@ private:
 	int TipPosition = 0;
 	TipQuadrant TipType = TipQuadrant::Top;
 
-	string BalloonText;
+	std::string BalloonText;
 	int SpeechPace = 0;
 
 	int WorkingRectMargin = -10;

@@ -83,7 +83,7 @@ AgentRendering::~AgentRendering()
 	free(AgentPalette);
 }
 
-void AgentRendering::DrawFrame(Gdiplus::Graphics* g, uint frameIndex, int offsetX, int offsetY)
+void AgentRendering::DrawFrame(Gdiplus::Graphics* g, uint32_t frameIndex, int offsetX, int offsetY)
 {
 	ImageAttributes imgAttr = {};
 	CharacterInfo ci = AgFile->GetCharacterInfo();
@@ -117,7 +117,7 @@ Gdiplus::ColorPalette* AgentRendering::CreatePalette(std::vector<RGBQuad> colorP
 	memset(cp, 0, structSize);
 
 	cp->Flags = 0;
-	cp->Count = static_cast<uint>(colorPalette.size());
+	cp->Count = static_cast<uint32_t>(colorPalette.size());
 
 	for (size_t i = 0; i < cp->Count; i++)
 	{
@@ -140,7 +140,7 @@ std::unique_ptr<Gdiplus::Bitmap> AgentRendering::GetFrameBitmap(ImageData& id) c
 		(INT)id.Height,
 		-(INT)id.Width, // é 8bpp e está de cabeça para baixo (vide msdn: DIB)
 		PixelFormat8bppIndexed,
-		(byte*)id.Data.get() + (id.Size - id.Width)
+		(uint8_t*)id.Data.get() + (id.Size - id.Width)
 	);
 
 	if (b->GetLastStatus() != Status::Ok)

@@ -1,10 +1,10 @@
-#include "AgentFile.h"
+#include "agent_file.h"
 
-string AgentFile::ReadString(std::ifstream& str)
+wstring AgentFile::ReadString(std::ifstream& str)
 {
 	int length = 0;
 	wchar_t curChar = 0;
-	string output = L"";
+	wstring output = L"";
 
 	ReadTo(length, str);
 
@@ -51,22 +51,22 @@ Type AgentFile::ReadSimple(std::ifstream& str)
 	return temp;
 }
 
-int AgentFile::Load(std::string path)
+LoadResult AgentFile::Load(std::string path)
 {
 	_stream = std::ifstream(path, std::ios_base::binary | std::ios_base::in);
 
 	if (!_stream.is_open())
-		return AGX_DPV_FAIL_TO_OPEN_STREAM;
+		return LoadResult::FailToOpenStream;
 
 	ReadTo(FileHeader, _stream);
 
 	if (FileHeader.Signature != ACS_MAGIC)
-		return AGX_DPV_INVALID_FILE_SIGNATURE;
+		return LoadResult::InvalidSignature;
 
 	ReadCharInfo(&FileHeader.CharacterInfo);
 
 	if (_charInfo.MajorVersion != ACS_MAJOR_VERSION)
-		return AGX_DPV_INCOMPATIBLE_VERSION;
+		return LoadResult::IncompatibleVersion;
 
 	ReadAnimationPointers(&FileHeader.AnimationInfo);
 	ReadImagePointers(&FileHeader.ImageInfo);
@@ -74,7 +74,7 @@ int AgentFile::Load(std::string path)
 
 	_initialized = true;
 
-	return AGX_DPV_LOAD_SUCCESS;
+	return LoadResult::Success;
 }
 
 CharacterInfo AgentFile::GetCharacterInfo()
@@ -85,7 +85,7 @@ CharacterInfo AgentFile::GetCharacterInfo()
 	return _charInfo;
 }
 
-void AgentFile::NormalizeString(string& s)
+void AgentFile::NormalizeString(wstring& s)
 {
 	std::transform(s.begin(), s.end(), s.begin(), std::tolower);
 }
@@ -110,7 +110,7 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 	ReadVoiceInfo();
 	ReadBalloonInfo();
 
-	_charInfo.ColorTable = ReadVector<uint, RGBQuad>(_stream, NULL);
+	_charInfo.ColorTable = ReadVector<uint32_t, RGBQuad>(_stream, NULL);
 
 	ReadTo(_charInfo.HasTrayIcon, _stream);
 
@@ -123,11 +123,11 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 		_agentIcon.ColorBitmapData = ReadIconImage();
 	}
 
-	std::vector<StateInfo> states = ReadVector<ushort, StateInfo>(_stream, [](std::ifstream& str) -> StateInfo {
+	std::vector<StateInfo> states = ReadVector<uint16_t, StateInfo>(_stream, [](std::ifstream& str) -> StateInfo {
 		StateInfo temp;
 
 		temp.StateName = ReadString(str);
-		temp.Animations = ReadVector<ushort, string>(str, ReadString);
+		temp.Animations = ReadVector<uint16_t, wstring>(str, ReadString);
 
 		NormalizeString(temp.StateName);
 
@@ -138,7 +138,7 @@ void AgentFile::ReadCharInfo(ACSLocator* pos)
 		_animationStates.insert({ curState.StateName, curState });
 
 	JumpTo(localizedInfo.Offset, _stream);
-	std::vector<LocalizedInfo> locInfo = ReadVector<ushort, LocalizedInfo>(_stream, [](std::ifstream& str) -> LocalizedInfo {
+	std::vector<LocalizedInfo> locInfo = ReadVector<uint16_t, LocalizedInfo>(_stream, [](std::ifstream& str) -> LocalizedInfo {
 		LocalizedInfo temp;
 
 		ReadTo(temp.LanguageId, str);
@@ -202,7 +202,7 @@ void AgentFile::ReadBalloonInfo()
 	ReadTo(_charInfo.BalloonInfo.Unknown, _stream);
 }
 
-LocalizedInfo AgentFile::GetLocalizedInfo(ushort langId)
+LocalizedInfo AgentFile::GetLocalizedInfo(LangId langId)
 {
 	if (!_initialized)
 		throw std::runtime_error("Não inicializado.");
@@ -224,7 +224,7 @@ IconImage AgentFile::ReadIconImage() // leitura obrigatória: https://devblogs.mi
 	size_t pixelDataSize = iconImage.IconHeader.SizeOfImageData;
 
 	iconImage.ColorTable = std::shared_ptr<RGBQuad>((RGBQuad*)malloc(colorTableSize), free);
-	iconImage.PixelData = std::shared_ptr<byte>((byte*)malloc(pixelDataSize), free);
+	iconImage.PixelData = std::shared_ptr<uint8_t>((uint8_t*)malloc(pixelDataSize), free);
 
 	_stream.read((char*)iconImage.ColorTable.get(), colorTableSize);
 	_stream.read((char*)iconImage.PixelData.get(), pixelDataSize);
@@ -235,7 +235,7 @@ IconImage AgentFile::ReadIconImage() // leitura obrigatória: https://devblogs.mi
 void AgentFile::ReadAnimationPointers(ACSLocator* pos)
 {
 	JumpTo(pos->Offset, _stream);
-	std::vector<AnimationPointer> animations = ReadVector<uint, AnimationPointer>(_stream, [](std::ifstream& str) -> AnimationPointer {
+	std::vector<AnimationPointer> animations = ReadVector<uint32_t, AnimationPointer>(_stream, [](std::ifstream& str) -> AnimationPointer {
 		AnimationPointer anim = {};
 		anim.AnimationName = ReadString(str);
 		ReadTo(anim.InfoLocation, str);
@@ -248,7 +248,7 @@ void AgentFile::ReadAnimationPointers(ACSLocator* pos)
 		_animations.insert({ animPointer.AnimationName, animPointer });
 }
 
-AnimationInfo AgentFile::GetAnimationInfo(string name)
+AnimationInfo AgentFile::GetAnimationInfo(wstring name)
 {
 	if (!_initialized)
 		throw std::runtime_error("Não inicializado.");
@@ -268,18 +268,18 @@ AnimationInfo AgentFile::GetAnimationInfo(string name)
 	info.AnimationName = ReadString(_stream);
 	ReadTo(info.Transition, _stream);
 	info.ReturnAnimation = ReadString(_stream);
-	info.Frames = ReadVector<ushort, FrameInfo>(_stream, [](std::ifstream& str) -> FrameInfo {
+	info.Frames = ReadVector<uint16_t, FrameInfo>(_stream, [](std::ifstream& str) -> FrameInfo {
 		FrameInfo fi = {};
 
-		fi.Images = ReadVector<ushort, FrameImage>(str, NULL);
+		fi.Images = ReadVector<uint16_t, FrameImage>(str, NULL);
 
 		ReadTo(fi.AudioIndex, str);
 		ReadTo(fi.FrameDuration, str);
 		ReadTo(fi.ExitFrameIndex, str);
 
-		fi.Branches = ReadVector<byte, BranchInfo>(str, NULL);
+		fi.Branches = ReadVector<uint8_t, BranchInfo>(str, NULL);
 
-		fi.Overlays = ReadVector<byte, OverlayInfo>(str, [](std::ifstream& str) -> OverlayInfo {
+		fi.Overlays = ReadVector<uint8_t, OverlayInfo>(str, [](std::ifstream& str) -> OverlayInfo {
 			OverlayInfo oi = {};
 
 			ReadTo(oi.OverlayType, str);
@@ -312,10 +312,10 @@ void AgentFile::ReadImagePointers(ACSLocator* pos)
 {
 	JumpTo(pos->Offset, _stream);
 
-	_imagePointers = ReadVector<uint, ImagePointer>(_stream, NULL);
+	_imagePointers = ReadVector<uint32_t, ImagePointer>(_stream, NULL);
 }
 
-ImageData AgentFile::ReadImageData(uint index)
+ImageData AgentFile::ReadImageData(uint32_t index)
 {
 	if (!_initialized)
 		throw std::runtime_error("Não inicializado.");
@@ -334,7 +334,7 @@ ImageData AgentFile::ReadImageData(uint index)
 	ReadTo(imgInfo.Compressed, _stream);
 	ReadTo(imgInfo.ImageData.SizeOfData, _stream);
 
-	byte* imgData = (byte*)malloc(imgInfo.ImageData.SizeOfData);
+	uint8_t* imgData = (uint8_t*)malloc(imgInfo.ImageData.SizeOfData);
 
 	if (!imgData)
 		throw std::runtime_error("Falha ao alocar memória.");
@@ -342,7 +342,7 @@ ImageData AgentFile::ReadImageData(uint index)
 	_stream.read((char*)imgData, imgInfo.ImageData.SizeOfData);
 
 	size_t uncompressedImageSize = (size_t)imgInfo.Width * (size_t)imgInfo.Height; // sempre 8bpp
-	byte* uncompressedImage = (byte*)malloc(uncompressedImageSize);
+	uint8_t* uncompressedImage = (uint8_t*)malloc(uncompressedImageSize);
 
 	if (!uncompressedImage)
 		throw std::runtime_error("Falha ao alocar memória.");
@@ -353,12 +353,12 @@ ImageData AgentFile::ReadImageData(uint index)
 	return { 
 		imgInfo.Width, 
 		imgInfo.Height, 
-		std::shared_ptr<byte>(uncompressedImage, free), 
+		std::shared_ptr<uint8_t>(uncompressedImage, free), 
 		uncompressedImageSize 
 	};
 }
 
-RgnData AgentFile::ReadImageRegion(unsigned int index)
+RgnData AgentFile::ReadImageRegion(uint32_t index)
 {
 	if (!_initialized)
 		throw std::runtime_error("Não inicializado.");
@@ -386,19 +386,19 @@ RgnData AgentFile::ReadImageRegion(unsigned int index)
 
 	int rawSize = cd.CompressedSize ? cd.CompressedSize : cd.OriginalSize;
 
-	byte* rgnData = (byte*)malloc(rawSize);
+	uint8_t* rgnData = (uint8_t*)malloc(rawSize);
 
 	if (!rgnData)
 		throw std::runtime_error("Falha ao alocar memória.");
 
 	_stream.read((char*)rgnData, rawSize);
 
-	cd.Data = std::shared_ptr<byte>(rgnData, free);
+	cd.Data = std::shared_ptr<uint8_t>(rgnData, free);
 
 	return ReadRegionData(&cd);
 }
 
-AudioData AgentFile::ReadAudioData(uint index)
+AudioData AgentFile::ReadAudioData(uint32_t index)
 {
 	if (!_initialized)
 		throw std::runtime_error("Não inicializado.");
@@ -410,19 +410,19 @@ AudioData AgentFile::ReadAudioData(uint index)
 
 	JumpTo(ap.AudioData.Offset, _stream);
 
-	byte* audioData = (byte*)calloc(ap.AudioData.Size, 1);
+	uint8_t* audioData = (uint8_t*)calloc(ap.AudioData.Size, 1);
 
 	_stream.read((char*)audioData, ap.AudioData.Size);
 
-	return { std::shared_ptr<byte>(audioData, free), ap.AudioData.Size };
+	return { std::shared_ptr<uint8_t>(audioData, free), ap.AudioData.Size };
 }
 
-std::vector<string> AgentFile::GetAnimationsList()
+std::vector<wstring> AgentFile::GetAnimationsList()
 {
 	if (!_initialized)
 		throw std::runtime_error("Não inicializado.");
 
-	std::vector<string> names = {};
+	std::vector<wstring> names = {};
 
 	for (const auto& animInfo : _animations)
 		names.push_back(animInfo.first);
@@ -433,18 +433,18 @@ std::vector<string> AgentFile::GetAnimationsList()
 void AgentFile::ReadAudioPointers(ACSLocator* pos)
 {
 	JumpTo(pos->Offset, _stream);
-	_audioPointers = ReadVector<uint, AudioPointer>(_stream, NULL);
+	_audioPointers = ReadVector<uint32_t, AudioPointer>(_stream, NULL);
 }
 
 RgnData AgentFile::ReadRegionData(CompressedData* cd)
 {
 	RgnData out = {};
 
-	std::shared_ptr<byte> outputBuffer = cd->Data;
+	std::shared_ptr<uint8_t> outputBuffer = cd->Data;
 
 	if (cd->CompressedSize != 0)
 	{
-		outputBuffer = std::shared_ptr<byte>((byte*)malloc(cd->OriginalSize), free);
+		outputBuffer = std::shared_ptr<uint8_t>((uint8_t*)malloc(cd->OriginalSize), free);
 		DecompressData(cd->Data.get(), cd->CompressedSize, outputBuffer.get());
 	}
 
@@ -459,19 +459,19 @@ RgnData AgentFile::ReadRegionData(CompressedData* cd)
 }
 
 // Essa função espera que o buffer de saída tenha o tamanho correto
-void AgentFile::DecompressData(byte* inputBuffer, size_t inputSize, byte* outputBuffer)
+void AgentFile::DecompressData(uint8_t* inputBuffer, size_t inputSize, uint8_t* outputBuffer)
 {
 	BitReader br = BitReader(inputBuffer, inputSize);
 
-	constexpr byte bitCountTable[] = {
+	constexpr uint8_t bitCountTable[] = {
 		6, 9, 12, 20
 	};
 
-	constexpr ushort valueSumTable[] = {
+	constexpr uint16_t valueSumTable[] = {
 		1, 65, 577, 4673
 	};
 
-	uint index = 0;
+	uint32_t index = 0;
 
 	br.ReadBits(8); // padding rsrs
 
@@ -479,15 +479,15 @@ void AgentFile::DecompressData(byte* inputBuffer, size_t inputSize, byte* output
 	{
 		if (!br.ReadBit()) // byte normal
 		{ 
-			outputBuffer[index] = (byte)br.ReadBits(8);
+			outputBuffer[index] = (uint8_t)br.ReadBits(8);
 			index++;
 			continue;
 		}
 
-		ushort countOfBytesToDecode = 2; // pelo menos 2 bytes codificados
-		byte offsetSequentialBits = br.CountSequentialBits(3);
-		byte offsetBitCount = bitCountTable[offsetSequentialBits];
-		uint offset = br.ReadBits(offsetBitCount);
+		uint16_t countOfBytesToDecode = 2; // pelo menos 2 bytes codificados
+		uint8_t offsetSequentialBits = br.CountSequentialBits(3);
+		uint8_t offsetBitCount = bitCountTable[offsetSequentialBits];
+		uint32_t offset = br.ReadBits(offsetBitCount);
 
 		if (offsetSequentialBits == 3) // 20 bits lidos
 		{
@@ -500,15 +500,15 @@ void AgentFile::DecompressData(byte* inputBuffer, size_t inputSize, byte* output
 		offset += valueSumTable[offsetSequentialBits];
 
 		// a quantidade de bits sequenciais dita quantos bytes serão decodificados
-		byte decBytesSequentialBits = br.CountSequentialBits(11); // o máximo de bits é 11
+		uint8_t decBytesSequentialBits = br.CountSequentialBits(11); // o máximo de bits é 11
 
 		if (decBytesSequentialBits == 11 && br.ReadBit()) // um bit extra que sempre deve ser 0
 			throw ("O 12º bit da sequência é 1.");
 
 		if (decBytesSequentialBits)
 		{
-			countOfBytesToDecode += (ushort)((1 << decBytesSequentialBits) - 1);
-			countOfBytesToDecode += (ushort)br.ReadBits(decBytesSequentialBits);
+			countOfBytesToDecode += (uint16_t)((1 << decBytesSequentialBits) - 1);
+			countOfBytesToDecode += (uint16_t)br.ReadBits(decBytesSequentialBits);
 		}
 
 		for (int i = 0; i < countOfBytesToDecode; i++) // copiar os dados para o buffer de saída
@@ -524,7 +524,7 @@ std::vector<std::wstring> AgentFile::GetAvailableStates()
 	if (!_initialized)
 		throw std::runtime_error("Não inicializado.");
 
-	std::vector<string> names = {};
+	std::vector<wstring> names = {};
 
 	for (const auto& stateInfo : _animationStates)
 		names.push_back(stateInfo.first);
@@ -540,7 +540,7 @@ TrayIcon AgentFile::GetAgentIcon()
 	return _agentIcon;
 }
 
-StateInfo AgentFile::GetStateInfo(string name)
+StateInfo AgentFile::GetStateInfo(wstring name)
 {
 	if (!_initialized)
 		throw std::runtime_error("Não inicializado.");

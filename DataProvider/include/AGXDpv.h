@@ -9,12 +9,20 @@
 #include <string>
 #include <vector>
 
-#include "Structs.h"
+#include "agxstruct.h"
 
-#define AGX_DPV_LOAD_SUCCESS 0
-#define AGX_DPV_FAIL_TO_OPEN_STREAM 1
-#define AGX_DPV_INVALID_FILE_SIGNATURE 2
-#define AGX_DPV_INCOMPATIBLE_VERSION 3
+constexpr auto AGX_DPV_LOAD_SUCCESS = 0;
+constexpr auto AGX_DPV_FAIL_TO_OPEN_STREAM = 1;
+constexpr auto AGX_DPV_INVALID_FILE_SIGNATURE = 2;
+constexpr auto AGX_DPV_INCOMPATIBLE_VERSION = 3;
+
+enum class LoadResult
+{
+	Success,
+	FailToOpenStream,
+	InvalidSignature,
+	IncompatibleVersion
+};
 
 class IAgentFile
 {
@@ -26,23 +34,18 @@ public:
 
 	//Entrada:
 	// 	path - Caminho do arquivo do agente
-	//
-	//Saída:
-	// 	AGX_DPV_LOAD_SUCCESS
-	// 	AGX_DPV_FAIL_TO_OPEN_STREAM
-	// 	AGX_DPV_INCOMPATIBLE_VERSION
-	virtual int Load(std::string path) = 0;
+	virtual LoadResult Load(std::string path) = 0;
 
 	virtual CharacterInfo GetCharacterInfo() = 0;
-	virtual LocalizedInfo GetLocalizedInfo(unsigned short langId) = 0;
+	virtual LocalizedInfo GetLocalizedInfo(LangId langId) = 0;
 
 	virtual StateInfo GetStateInfo(std::wstring name) = 0;
 	virtual AnimationInfo GetAnimationInfo(std::wstring name) = 0;
 
-	virtual ImageData ReadImageData(unsigned int index) = 0;
-	virtual AudioData ReadAudioData(unsigned int index) = 0;
+	virtual ImageData ReadImageData(uint32_t index) = 0;
+	virtual AudioData ReadAudioData(uint32_t index) = 0;
 
-	virtual RgnData ReadImageRegion(unsigned int index) = 0;
+	virtual RgnData ReadImageRegion(uint32_t index) = 0;
 
 	virtual TrayIcon GetAgentIcon() = 0;
 

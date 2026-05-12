@@ -81,7 +81,7 @@ struct AgEvent {
 		MouthOverlayType,
 		AgPoint,
 		bool,
-		string,
+		std::string,
 		int,
 		AgRect,
 		WindowPointer

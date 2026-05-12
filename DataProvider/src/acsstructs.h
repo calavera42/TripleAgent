@@ -1,30 +1,32 @@
 #pragma once
 
+#include "../include/agxstruct.h"
+
 struct DataBlock {
-	uint SizeOfData;
-	std::shared_ptr<byte> Data;
+	uint32_t SizeOfData;
+	std::shared_ptr<uint8_t> Data;
 };
 
 struct ACSLocator {
-	uint Offset;
-	uint Size;
+	uint32_t Offset;
+	uint32_t Size;
 };
 
 struct CompressedData {
-	uint CompressedSize{};
-	uint OriginalSize{};
-	std::shared_ptr<byte> Data;
+	uint32_t CompressedSize{};
+	uint32_t OriginalSize{};
+	std::shared_ptr<uint8_t> Data;
 };
 
 struct AnimationPointer {
-	string AnimationName{};
+	std::wstring AnimationName{};
 	ACSLocator InfoLocation{};
 };
 
 struct ImageInfo {
-	byte Unknown;
-	ushort Width;
-	ushort Height;
+	uint8_t Unknown;
+	uint16_t Width;
+	uint16_t Height;
 	bool Compressed;
 	DataBlock ImageData;
 	CompressedData RegionData;
@@ -32,16 +34,16 @@ struct ImageInfo {
 
 struct ImagePointer {
 	ACSLocator LocationOfImage;
-	uint Checksum;
+	uint32_t Checksum;
 };
 
 struct AudioPointer {
 	ACSLocator AudioData;
-	uint CheckSum;
+	uint32_t CheckSum;
 };
 
 struct ACSHeader {
-	uint Signature;
+	uint32_t Signature;
 	ACSLocator CharacterInfo;
 	ACSLocator AnimationInfo;
 	ACSLocator ImageInfo;

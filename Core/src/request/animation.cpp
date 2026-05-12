@@ -22,7 +22,7 @@ void Animation::DoFrameProceed(std::vector<BranchInfo>& branches)
     _currentFrame++;
 }
 
-Animation::Animation(int id, string animName, IAgentFile* agentFile)
+Animation::Animation(int id, wstring animName, IAgentFile* agentFile)
 {
     srand(10);
 

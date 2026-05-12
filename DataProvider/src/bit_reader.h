@@ -5,18 +5,18 @@
 class BitReader {
 public:
 	int CurBit = 8;
-	byte CurByte = 0;
-	byte* Position = nullptr;
+	uint8_t CurByte = 0;
+	uint8_t* Position = nullptr;
 	size_t Length = 0;
 	size_t BytesRead = 0;
 
-	BitReader(byte* pos, size_t inputSize)
+	BitReader(uint8_t* pos, size_t inputSize)
 	{
 		Position = pos;
 		Length = inputSize;
 	}
 
-	byte ReadBit() {
+	uint8_t ReadBit() {
 		if (CurBit == 8) 
 		{
 			if (BytesRead == Length)
@@ -28,25 +28,25 @@ public:
 			Position++;
 			BytesRead++;
 		}
-		byte value = (byte)((CurByte >> CurBit) & 1);
+		uint8_t value = (uint8_t)((CurByte >> CurBit) & 1);
 
 		CurBit++;
 		return value;
 	}
 	
-	uint ReadBits(int bitCount) 
+	uint32_t ReadBits(int bitCount) 
 	{
-		uint output = 0;
+		uint32_t output = 0;
 
 		for (int i = 0; i < bitCount; i++)
-			output |= (uint)(ReadBit() << i);
+			output |= (uint32_t)(ReadBit() << i);
 
 		return output;
 	}
 
-	byte CountSequentialBits(int maxBits) 
+	uint8_t CountSequentialBits(int maxBits) 
 	{
-		byte seq = 0;
+		uint8_t seq = 0;
 		for (int i = 0; i < maxBits; i++)
 		{
 			if (ReadBit() == 0)

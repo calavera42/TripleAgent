@@ -9,9 +9,9 @@
 
 #include <thread>
 
-void loop(std::string map);
+void loop(std::wstring map);
 
-void PrintAnimation(IAgentFile* af, string name) 
+void PrintAnimation(IAgentFile* af, wstring name) 
 {
 	AnimationInfo ai = af->GetAnimationInfo(name);
 
@@ -61,9 +61,9 @@ void loop(std::string map) {
 
 	int i = 0, i2 = 0, delay = 0;
 
-	string texts[2] = {
-		L"Ah eu não aguento mais\nFicar longe do teu amor\nDessa voz doce, quente, tão rouca\nE do teu corpo sedutor\n\nAh eu não aguento mais\nFicar longe de ti, meu bem\nDos teus beijos na boca, tão louca\nNinguém beija melhor, meu bem\nComo eu te adoro, amor\n\nE não cabe mais em mim\nDesejo te amar, meu bem\nTe abraçar\nTe apertar\nTe beijar\nDepois ir muito mais além\n\nViver não me interessa mais\nSe acaso um dia eu te perder\nVou chorar\nVou sofrer\nMe matar\nNão me interessa mais viver\nSem teu amor meu bem",
-		L"This is a sample line of text\nThis is a sample line of text"
+	std::string texts[2] = {
+		"Ah eu não aguento mais\nFicar longe do teu amor\nDessa voz doce, quente, tão rouca\nE do teu corpo sedutor\n\nAh eu não aguento mais\nFicar longe de ti, meu bem\nDos teus beijos na boca, tão louca\nNinguém beija melhor, meu bem\nComo eu te adoro, amor\n\nE não cabe mais em mim\nDesejo te amar, meu bem\nTe abraçar\nTe apertar\nTe beijar\nDepois ir muito mais além\n\nViver não me interessa mais\nSe acaso um dia eu te perder\nVou chorar\nVou sofrer\nMe matar\nNão me interessa mais viver\nSem teu amor meu bem",
+		"This is a sample line of text\nThis is a sample line of text"
 	};
 
 	auto ft = std::chrono::system_clock::now();
