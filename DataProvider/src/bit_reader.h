@@ -6,11 +6,11 @@ class BitReader {
 public:
 	int CurBit = 8;
 	uint8_t CurByte = 0;
-	uint8_t* Position = nullptr;
+	const uint8_t* Position = nullptr;
 	size_t Length = 0;
 	size_t BytesRead = 0;
 
-	BitReader(uint8_t* pos, size_t inputSize)
+	BitReader(const uint8_t* pos, size_t inputSize)
 	{
 		Position = pos;
 		Length = inputSize;

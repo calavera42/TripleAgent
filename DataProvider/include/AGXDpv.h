@@ -43,7 +43,7 @@ public:
 	virtual AnimationInfo GetAnimationInfo(std::wstring name) = 0;
 
 	virtual ImageData ReadImageData(uint32_t index) = 0;
-	virtual AudioData ReadAudioData(uint32_t index) = 0;
+	virtual std::span<uint8_t> ReadAudioData(uint32_t index) = 0;
 
 	virtual RgnData ReadImageRegion(uint32_t index) = 0;
 

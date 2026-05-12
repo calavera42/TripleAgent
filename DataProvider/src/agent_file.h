@@ -58,7 +58,7 @@ public:
 	virtual AnimationInfo GetAnimationInfo(wstring name) override;
 
 	virtual ImageData ReadImageData(uint32_t index) override;
-	virtual AudioData ReadAudioData(uint32_t index) override;
+	virtual std::span<uint8_t> ReadAudioData(uint32_t index) override;
 
 	virtual RgnData ReadImageRegion(uint32_t index) override;
 
@@ -85,5 +85,5 @@ private:
 	void ReadImagePointers(ACSLocator* pos);
 	void ReadAudioPointers(ACSLocator* pos);
 	RgnData ReadRegionData(CompressedData* cd);
-	void DecompressData(uint8_t* inputBuffer, size_t inputSize, uint8_t* outputBuffer);
+	bool DecompressData(const std::vector<uint8_t>& inputBuffer, std::vector<uint8_t>& out);
 };

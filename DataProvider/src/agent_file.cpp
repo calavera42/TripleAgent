@@ -334,27 +334,20 @@ ImageData AgentFile::ReadImageData(uint32_t index)
 	ReadTo(imgInfo.Compressed, _stream);
 	ReadTo(imgInfo.ImageData.SizeOfData, _stream);
 
-	uint8_t* imgData = (uint8_t*)malloc(imgInfo.ImageData.SizeOfData);
+	std::vector<uint8_t> imgData = {};
+	std::vector<uint8_t> uncompressedData = {};
 
-	if (!imgData)
-		throw std::runtime_error("Falha ao alocar memória.");
+	imgData.resize(imgInfo.ImageData.SizeOfData);
+	uncompressedData.resize(imgInfo.Width * imgInfo.Height); // sempre 8bpp
 
-	_stream.read((char*)imgData, imgInfo.ImageData.SizeOfData);
+	_stream.read(reinterpret_cast<char*>(imgData.data()), imgInfo.ImageData.SizeOfData);
 
-	size_t uncompressedImageSize = (size_t)imgInfo.Width * (size_t)imgInfo.Height; // sempre 8bpp
-	uint8_t* uncompressedImage = (uint8_t*)malloc(uncompressedImageSize);
-
-	if (!uncompressedImage)
-		throw std::runtime_error("Falha ao alocar memória.");
-
-	DecompressData(imgData, imgInfo.ImageData.SizeOfData, uncompressedImage);
-	free(imgData);
+	auto data = DecompressData(imgData, uncompressedData);
 
 	return { 
 		imgInfo.Width, 
 		imgInfo.Height, 
-		std::shared_ptr<uint8_t>(uncompressedImage, free), 
-		uncompressedImageSize 
+		uncompressedData
 	};
 }
 
@@ -398,7 +391,7 @@ RgnData AgentFile::ReadImageRegion(uint32_t index)
 	return ReadRegionData(&cd);
 }
 
-AudioData AgentFile::ReadAudioData(uint32_t index)
+std::span<uint8_t> AgentFile::ReadAudioData(uint32_t index)
 {
 	if (!_initialized)
 		throw std::runtime_error("Não inicializado.");
@@ -410,11 +403,11 @@ AudioData AgentFile::ReadAudioData(uint32_t index)
 
 	JumpTo(ap.AudioData.Offset, _stream);
 
-	uint8_t* audioData = (uint8_t*)calloc(ap.AudioData.Size, 1);
+	std::vector<uint8_t> data = {};
+	data.resize(ap.AudioData.Size);
 
-	_stream.read((char*)audioData, ap.AudioData.Size);
-
-	return { std::shared_ptr<uint8_t>(audioData, free), ap.AudioData.Size };
+	_stream.read(reinterpret_cast<char*>(data.data()), ap.AudioData.Size);
+	return data;
 }
 
 std::vector<wstring> AgentFile::GetAnimationsList()
@@ -436,32 +429,10 @@ void AgentFile::ReadAudioPointers(ACSLocator* pos)
 	_audioPointers = ReadVector<uint32_t, AudioPointer>(_stream, NULL);
 }
 
-RgnData AgentFile::ReadRegionData(CompressedData* cd)
-{
-	RgnData out = {};
-
-	std::shared_ptr<uint8_t> outputBuffer = cd->Data;
-
-	if (cd->CompressedSize != 0)
-	{
-		outputBuffer = std::shared_ptr<uint8_t>((uint8_t*)malloc(cd->OriginalSize), free);
-		DecompressData(cd->Data.get(), cd->CompressedSize, outputBuffer.get());
-	}
-
-	if (!outputBuffer || cd->OriginalSize < 32)
-		throw std::runtime_error("Falha ao alocar ou ler memória.");
-
-	memcpy(&out.Header, outputBuffer.get(), sizeof(out.Header));
-
-	// os outros rects não têm tanto uso...
-
-	return out;
-}
-
 // Essa função espera que o buffer de saída tenha o tamanho correto
-void AgentFile::DecompressData(uint8_t* inputBuffer, size_t inputSize, uint8_t* outputBuffer)
+bool AgentFile::DecompressData(const std::vector<uint8_t>& inputBuffer, std::vector<uint8_t>& output)
 {
-	BitReader br = BitReader(inputBuffer, inputSize);
+	BitReader br = BitReader(inputBuffer.data(), inputBuffer.size());
 
 	constexpr uint8_t bitCountTable[] = {
 		6, 9, 12, 20
@@ -479,7 +450,7 @@ void AgentFile::DecompressData(uint8_t* inputBuffer, size_t inputSize, uint8_t* 
 	{
 		if (!br.ReadBit()) // byte normal
 		{ 
-			outputBuffer[index] = (uint8_t)br.ReadBits(8);
+			output[index] = (uint8_t)br.ReadBits(8);
 			index++;
 			continue;
 		}
@@ -489,7 +460,7 @@ void AgentFile::DecompressData(uint8_t* inputBuffer, size_t inputSize, uint8_t* 
 		uint8_t offsetBitCount = bitCountTable[offsetSequentialBits];
 		uint32_t offset = br.ReadBits(offsetBitCount);
 
-		if (offsetSequentialBits == 3) // 20 bits lidos
+		if (offsetBitCount == 20)
 		{
 			if (offset == 0x000FFFFF)
 				break; // fim dos dados
@@ -513,7 +484,7 @@ void AgentFile::DecompressData(uint8_t* inputBuffer, size_t inputSize, uint8_t* 
 
 		for (int i = 0; i < countOfBytesToDecode; i++) // copiar os dados para o buffer de saída
 		{
-			outputBuffer[index] = outputBuffer[index - offset];
+			output[index] = output[index - offset];
 			index++;
 		}
 	}

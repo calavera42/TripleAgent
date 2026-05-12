@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "langid.h"
+#include <span>
 
 struct AnimationInfo;
 struct BalloonInfo;
@@ -157,7 +158,7 @@ struct TrayIcon {
 };
 
 struct ExtraVoiceInfo {
-	uint16_t LangId{};
+	LangId LangId{};
 	std::wstring LanguageDialect{};
 	uint16_t Gender{};
 	uint16_t Age{};
@@ -208,17 +209,11 @@ struct CharacterInfo {
 };
 #pragma pack(pop)
 
-struct AudioData {
-	std::shared_ptr<uint8_t> Data;
-	uint32_t Size;
-};
-
 struct ImageData {
 	uint16_t Width{};
 	uint16_t Height{};
 
-	std::shared_ptr<uint8_t> Data{};
-	size_t Size{};
+	std::span<uint8_t> Data{};
 };
 
 struct AgPoint {
