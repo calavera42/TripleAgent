@@ -22,7 +22,7 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 class AgentWindow : public IAgentWindow
 {
 private:
-	int WndCount = 0;
+	int _wndCount = 0;
 
 	uint16_t Width = {};
 	uint16_t Height = {};
@@ -36,30 +36,11 @@ private:
 	int WindowStyle = WS_POPUP;
 	int WindowExStyle = WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_LAYERED;
 
-	std::shared_ptr<FrameInfo> CurFrame;
-	MouthOverlayType CurMouth{};
-
-	std::mutex UpdateMutex{};
-	std::queue<AgEvent> AgentUpdates{};
-	std::mutex EventsMutex{};
-	std::queue<AgEvent> WindowEvents{};
-
-	bool WindowStartDragging = false;
-
-	static LRESULT CALLBACK IntWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-	int InternalSetup(IAgentFile* f, uint16_t langId);
-	void PushWindowEvent(AgEvent e);
-	void ProcessUserEvent();
-
-	AgEvent PopUserEvent();
 
 public:
-	int Setup(IAgentFile* f, uint16_t langid = 0x416) override;
+	int Setup(std::shared_ptr<IAgentFile> af, std::function<void(AgEvent)> callback, LangId langid = LangId::pt_BR) override;
 
 	void UpdateState(AgEvent e) override;
-	AgEvent QueryEvent() override;
 
 	bool IsVisible() override;
 	AgRect GetRect() override;

@@ -50,10 +50,8 @@ public:
 	IAgentWindow(const IAgentWindow&) = delete;
 	void operator=(const IAgentWindow&) = delete;
 
-	virtual int Setup(IAgentFile* af, uint16_t langid = 0x416) = 0;
-
+	virtual int Setup(std::shared_ptr<IAgentFile> af, std::function<void(AgEvent)> callback, LangId langid = LangId::pt_BR) = 0;
 	virtual void UpdateState(AgEvent e) = 0;
-	virtual AgEvent QueryEvent() = 0;
 
 	virtual AgRect GetRect() = 0;
 	virtual bool IsVisible() = 0;
@@ -66,18 +64,16 @@ public:
 	IBalloonWindow(const IBalloonWindow&) = delete;
 	void operator=(const IBalloonWindow&) = delete;
 
-	virtual int Setup(CharacterInfo ci) = 0;
-
+	virtual int Setup(CharacterInfo ci, std::function<void(AgEvent)> callback) = 0;
 	virtual void UpdateState(AgEvent e) = 0;
 };
 
-typedef std::shared_ptr<FrameInfo> FramePointer;
 typedef std::shared_ptr<IAgentWindow> WindowPointer;
 
 struct AgEvent {
 	AgEventType Type{};
 	std::variant<
-		FramePointer,
+		FrameInfo,
 		MouthOverlayType,
 		AgPoint,
 		bool,
@@ -88,10 +84,5 @@ struct AgEvent {
 	> Data{};
 };
 
-extern "C" AGENT_WIN IAgentWindow* CreateAgentWindow();
-extern "C" AGENT_WIN IBalloonWindow* CreateBalloonWindow();
-
-extern "C" AGENT_WIN void DestroyAgentWindow(IAgentWindow* ptr);
-extern "C" AGENT_WIN void DestroyBalloonWindow(IBalloonWindow* ptr);
-
-extern "C" AGENT_WIN void ProcessMessages();
+AGENT_WIN std::shared_ptr<IAgentWindow> CreateAgentWindow();
+AGENT_WIN std::shared_ptr<IBalloonWindow> CreateBalloonWindow();

@@ -1,36 +1,35 @@
 #pragma once
-#include "Types.h"
 #include <fstream>
 
 class BitReader {
 public:
-	int CurBit = 8;
-	uint8_t CurByte = 0;
-	const uint8_t* Position = nullptr;
-	size_t Length = 0;
-	size_t BytesRead = 0;
+	int m_curBit = 8;
+	uint8_t m_curByte = 0;
+	const uint8_t* m_position = nullptr;
+	size_t m_length = 0;
+	size_t m_bytesRead = 0;
 
 	BitReader(const uint8_t* pos, size_t inputSize)
 	{
-		Position = pos;
-		Length = inputSize;
+		m_position = pos;
+		m_length = inputSize;
 	}
 
 	uint8_t ReadBit() {
-		if (CurBit == 8) 
+		if (m_curBit == 8) 
 		{
-			if (BytesRead == Length)
+			if (m_bytesRead == m_length)
 				throw ("Tentativa de ler fora do buffer.");
 
-			CurByte = *Position;
-			CurBit = 0;
+			m_curByte = *m_position;
+			m_curBit = 0;
 
-			Position++;
-			BytesRead++;
+			m_position++;
+			m_bytesRead++;
 		}
-		uint8_t value = (uint8_t)((CurByte >> CurBit) & 1);
+		uint8_t value = (uint8_t)((m_curByte >> m_curBit) & 1);
 
-		CurBit++;
+		m_curBit++;
 		return value;
 	}
 	

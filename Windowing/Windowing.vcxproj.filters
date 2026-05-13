@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="include\AGXWin.h">
+    <ClCompile Include="include\agxwin.h">
       <Filter>Arquivos de Origem</Filter>
     </ClCompile>
     <ClCompile Include="src\Agent\AgentWindow.cpp">
@@ -30,7 +30,7 @@
     <ClCompile Include="src\Balloon\BalloonRendering\SpeechBalloonRenderer.cpp">
       <Filter>Arquivos de Origem</Filter>
     </ClCompile>
-    <ClCompile Include="IAgentWindow.cpp">
+    <ClCompile Include="agent_window_factory.cpp">
       <Filter>Arquivos de Origem</Filter>
     </ClCompile>
   </ItemGroup>

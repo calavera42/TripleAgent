@@ -1,4 +1,4 @@
-#include <cstdint>
+#include <inttypes.h>
 
 enum class LangId : uint16_t {
     ar_SA = 1025,       // Arabic - Saudi Arabia

@@ -164,12 +164,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="IAgentWindow.cpp" />
+    <ClCompile Include="agent_window_factory.cpp" />
     <ClCompile Include="src\Balloon\BalloonRendering\SpeechBalloonRenderer.cpp" />
     <ClCompile Include="src\Balloon\BalloonWindow.cpp" />
     <ClCompile Include="src\Agent\AgentRendering.cpp" />
     <ClCompile Include="src\Agent\AgentWindow.cpp" />
-    <ClCompile Include="include\AGXWin.h" />
+    <ClCompile Include="include\agxwin.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Balloon\BalloonRendering\SpeechBalloonRenderer.h" />

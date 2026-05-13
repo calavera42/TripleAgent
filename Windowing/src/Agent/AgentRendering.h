@@ -21,7 +21,6 @@ private:
 	std::unique_ptr<Gdiplus::Bitmap> GetFrameBitmap(ImageData& im) const;
 public:
 	void Setup(IAgentFile* file);
-
 	void Paint(HWND hwnd, std::shared_ptr<FrameInfo> curFrame, MouthOverlayType overlay);
 
 	~AgentRendering();

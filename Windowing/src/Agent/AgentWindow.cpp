@@ -3,7 +3,6 @@
 using namespace Gdiplus;
 
 // TODO: POR FAVOR: AO FINALIZAR A PARTE FUNCIONAL DO PROJETO, REFATORAR TENDO EM MENTE O CICLO DE VIDA DESSA BIBLIOTECA.
-
 LRESULT AgentWindow::IntWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	AgentWindow* agx = (AgentWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
@@ -13,6 +12,7 @@ LRESULT AgentWindow::IntWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
+
 // TODO: consertar o evento de click
 LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -90,63 +90,6 @@ LRESULT AgentWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	return 0;
 }
 
-// TODO: carregar o ícone do agente
-int AgentWindow::InternalSetup(IAgentFile* af, uint16_t langId)
-{
-	CharacterInfo ci = af->GetCharacterInfo();
-
-	GUID guid;
-	HRESULT hr = CoCreateGuid(&guid);
-
-	wchar_t guidString[64];
-	hr = StringFromGUID2(guid, guidString, 64);
-
-	WndClassName = L"agntwndclss" + std::wstring(guidString);
-
-	WNDCLASS wc = {};
-
-	wc.lpfnWndProc = (WNDPROC)IntWindowProc;
-	wc.hInstance = hInstDll;
-	wc.lpszClassName = WndClassName.c_str();
-
-	if (!RegisterClass(&wc))
-		return AGX_WND_CREATION_FAIL;
-
-	RECT windowRect = {
-		0,
-		0,
-		ci.Width,
-		ci.Height
-	};
-
-	AdjustWindowRectEx(&windowRect, WindowStyle, false, WindowExStyle);
-
-	HWND hwnd = CreateWindowEx(
-		WindowExStyle,
-		WndClassName.c_str(),
-		af->GetLocalizedInfo(langId).CharName.c_str(),
-		WindowStyle,
-		CW_USEDEFAULT, CW_USEDEFAULT,
-		windowRect.right - windowRect.left, 
-		windowRect.bottom - windowRect.top,
-		NULL, NULL, hInstDll, NULL
-	);
-
-	if (hwnd == NULL)
-		return AGX_WND_CREATION_FAIL;
-
-	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
-
-	Width = ci.Width;
-	Height = ci.Height;
-
-	Handle = hwnd;
-
-	AgRender.Setup(af);
-
-	return AGX_WND_CREATION_SUCCESS;
-}
-
 void AgentWindow::PushWindowEvent(AgEvent e)
 {
 	std::scoped_lock<std::mutex> guard(EventsMutex);
@@ -198,9 +141,60 @@ AgEvent AgentWindow::PopUserEvent()
 	return e;
 }
 
-int AgentWindow::Setup(IAgentFile* af, uint16_t langId)
+int AgentWindow::Setup(std::shared_ptr<IAgentFile> af, std::function<void(AgEvent)> callback, LangId langid = LangId::pt_BR)
 {
-	return InternalSetup(af, langId);
+	CharacterInfo ci = af->GetCharacterInfo();
+
+	GUID guid;
+	HRESULT hr = CoCreateGuid(&guid);
+
+	wchar_t guidString[64];
+	hr = StringFromGUID2(guid, guidString, 64);
+
+	WndClassName = L"agntwndclss" + std::wstring(guidString);
+
+	WNDCLASS wc = {};
+
+	wc.lpfnWndProc = (WNDPROC)IntWindowProc;
+	wc.hInstance = hInstDll;
+	wc.lpszClassName = WndClassName.c_str();
+
+	if (!RegisterClass(&wc))
+		return AGX_WND_CREATION_FAIL;
+
+	RECT windowRect = {
+		0,
+		0,
+		ci.Width,
+		ci.Height
+	};
+
+	AdjustWindowRectEx(&windowRect, WindowStyle, false, WindowExStyle);
+
+	HWND hwnd = CreateWindowEx(
+		WindowExStyle,
+		WndClassName.c_str(),
+		af->GetLocalizedInfo(langid).CharName.c_str(),
+		WindowStyle,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		windowRect.right - windowRect.left,
+		windowRect.bottom - windowRect.top,
+		NULL, NULL, hInstDll, NULL
+	);
+
+	if (hwnd == NULL)
+		return AGX_WND_CREATION_FAIL;
+
+	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
+
+	Width = ci.Width;
+	Height = ci.Height;
+
+	Handle = hwnd;
+
+	AgRender.Setup(af);
+
+	return AGX_WND_CREATION_SUCCESS;
 }
 
 bool AgentWindow::IsVisible()
@@ -214,17 +208,6 @@ void AgentWindow::UpdateState(AgEvent e)
 
 	AgentUpdates.push(e);
 	PostMessage(Handle, WM_NEWEVENT, 0, 0);
-}
-
-AgEvent AgentWindow::QueryEvent()
-{
-	if (WindowEvents.empty())
-		return {};
-
-	AgEvent e = WindowEvents.front();
-	WindowEvents.pop();
-
-	return e;
 }
 
 AgRect AgentWindow::GetRect()

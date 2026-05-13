@@ -213,7 +213,7 @@ struct ImageData {
 	uint16_t Width{};
 	uint16_t Height{};
 
-	std::span<uint8_t> Data{};
+	std::vector<uint8_t> Data{};
 };
 
 struct AgPoint {

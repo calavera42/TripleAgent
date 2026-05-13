@@ -140,7 +140,7 @@ std::unique_ptr<Gdiplus::Bitmap> AgentRendering::GetFrameBitmap(ImageData& id) c
 		(INT)id.Height,
 		-(INT)id.Width, // é 8bpp e está de cabeça para baixo (vide msdn: DIB)
 		PixelFormat8bppIndexed,
-		(uint8_t*)id.Data.get() + (id.Size - id.Width)
+		(uint8_t*)id.Data.data() + (id.Data.size() - id.Width)
 	);
 
 	if (b->GetLastStatus() != Status::Ok)

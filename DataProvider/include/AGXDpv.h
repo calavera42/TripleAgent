@@ -11,11 +11,6 @@
 
 #include "agxstruct.h"
 
-constexpr auto AGX_DPV_LOAD_SUCCESS = 0;
-constexpr auto AGX_DPV_FAIL_TO_OPEN_STREAM = 1;
-constexpr auto AGX_DPV_INVALID_FILE_SIGNATURE = 2;
-constexpr auto AGX_DPV_INCOMPATIBLE_VERSION = 3;
-
 enum class LoadResult
 {
 	Success,
@@ -32,6 +27,8 @@ public:
 	IAgentFile(const IAgentFile&) = delete;
 	void operator=(const IAgentFile&) = delete;
 
+	virtual ~IAgentFile() { }
+
 	//Entrada:
 	// 	path - Caminho do arquivo do agente
 	virtual LoadResult Load(std::string path) = 0;
@@ -45,13 +42,10 @@ public:
 	virtual ImageData ReadImageData(uint32_t index) = 0;
 	virtual std::span<uint8_t> ReadAudioData(uint32_t index) = 0;
 
-	virtual RgnData ReadImageRegion(uint32_t index) = 0;
-
 	virtual TrayIcon GetAgentIcon() = 0;
 
 	virtual std::vector<std::wstring> GetAnimationsList() = 0;
 	virtual std::vector<std::wstring> GetAvailableStates() = 0;
 };
 
-extern "C" AGENT_DPV IAgentFile* CreateAgentFile();
-extern "C" AGENT_DPV void DestroyAgentFile(IAgentFile* agent);
+AGENT_DPV std::shared_ptr<IAgentFile> CreateAgentFile();

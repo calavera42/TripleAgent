@@ -1,12 +1,7 @@
 #include "include/agxdpv.h"
 #include "src/agent_file.h"
 
-AGENT_DPV IAgentFile* CreateAgentFile()
+AGENT_DPV std::shared_ptr<IAgentFile> CreateAgentFile()
 {
-	return new AgentFile;
-}
-
-AGENT_DPV void DestroyAgentFile(IAgentFile* agent)
-{
-	delete agent;
+	return std::make_shared<AgentFile>();
 }
